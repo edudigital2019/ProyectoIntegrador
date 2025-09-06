@@ -1,0 +1,46 @@
+﻿@model AnalisisPredictivoVentas.Models.Usuario
+@{
+    ViewData["Title"] = "Nuevo usuario";
+}
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input type="password" name="password" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Nombres" class="form-label"></label>
+        <input asp-for="Nombres" class="form-control" />
+        <span asp-validation-for="Nombres" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Rol</label>
+        <select asp-for="Rol" class="form-select">
+            <option value="@AnalisisPredictivoVentas.Models.Roles.Administrador">Administrador</option>
+            <option value="@AnalisisPredictivoVentas.Models.Roles.ResponsableCarga">ResponsableCarga</option>
+            <option value="@AnalisisPredictivoVentas.Models.Roles.Empleado">Empleado</option>
+        </select>
+        <span asp-validation-for="Rol" class="text-danger"></span>
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="Activo" class="form-check-input" />
+        <label asp-for="Activo" class="form-check-label">Activo</label>
+    </div>
+
+    <button class="btn btn-primary">Guardar</button>
+    <a asp-action="Index" class="btn btn-secondary">Volver</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

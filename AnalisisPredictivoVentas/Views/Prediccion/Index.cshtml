@@ -1,0 +1,65 @@
+﻿@model List<AnalisisPredictivoVentas.ViewModels.SugerenciaCompraVm>
+@{
+    ViewData["Title"] = "Sugerencias de Compra (sin inventario)";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">Sugerencias de compra por cobertura</h2>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-auto">
+            <label class="form-label">Ventana (semanas históricas)</label>
+            <input class="form-control" type="number" name="ventana" value="@ViewBag.Ventana" min="6" />
+        </div>
+        <div class="col-auto">
+            <label class="form-label">Almacén (opcional)</label>
+            <input class="form-control" type="number" name="almacenId" value="@ViewBag.AlmacenId" />
+        </div>
+        <div class="col-auto align-self-end">
+            <button class="btn btn-primary">Recalcular</button>
+        </div>
+    </form>
+
+    <div class="alert alert-info">
+        No se usa inventario actual. Se recomienda comprar la <b>cobertura completa</b>:
+        Base-stock = <i>μ·P + Z·σ·√P</i>, donde P = LeadTime + Cobertura. Si luego tienes stock real, se restará automáticamente en la recomendación.
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th class="text-end">μ semanal</th>
+                    <th class="text-end">σ semanal</th>
+                    <th class="text-end">LT (sem)</th>
+                    <th class="text-end">Cobertura (sem)</th>
+                    <th class="text-end">Z</th>
+                    <th class="text-end">P (sem)</th>
+                    <th class="text-end">Demanda P</th>
+                    <th class="text-end">Seguridad</th>
+                    <th class="text-end">Stock objetivo</th>
+                    <th class="text-end">Recomendado comprar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Producto</td>
+                        <td class="text-end">@x.PromedioSemanal</td>
+                        <td class="text-end">@x.DesvSemanal</td>
+                        <td class="text-end">@x.LeadTimeSemanas</td>
+                        <td class="text-end">@x.CoberturaSemanas</td>
+                        <td class="text-end">@x.Z</td>
+                        <td class="text-end">@x.PeriodoProteccion</td>
+                        <td class="text-end">@x.DemandaProteccion</td>
+                        <td class="text-end">@x.Seguridad</td>
+                        <td class="text-end fw-semibold">@x.StockObjetivo</td>
+                        <td class="text-end fw-bold text-primary">@x.RecomendadoComprar</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

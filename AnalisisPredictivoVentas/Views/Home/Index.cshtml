@@ -1,0 +1,66 @@
+﻿@{
+    ViewData["Title"] = "Inicio";
+}
+<section class="position-relative overflow-hidden rounded-4 shadow-sm hero-ventas">
+    <img src="~/img/ventas-hero.jpg" alt="Análisis y pronóstico de ventas"
+         class="w-100 h-100 object-fit-cover" style="max-height: 380px; filter: saturate(1.05) contrast(1.05);" />
+    <div class="position-absolute top-0 start-0 w-100 h-100"
+         style="background: linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.15));"></div>
+
+    <div class="position-absolute top-50 start-0 translate-middle-y text-white p-4 p-md-5">
+        <h1 class="display-5 fw-bold mb-2">Análisis Predictivo de Ventas</h1>
+        <p class="lead mb-4">Carga tus datos, obtén KPIs al instante y genera pronósticos por producto y almacén.</p>
+
+        <div class="d-flex gap-2 flex-wrap">
+            @if (User.IsInRole("Administrador") || User.IsInRole("ResponsableCarga"))
+            {
+                <a class="btn btn-primary btn-lg" asp-controller="Uploads" asp-action="Index">
+                    <i class="bi bi-cloud-arrow-up me-1"></i> Cargar información
+                </a>
+            }
+            @if (User.Identity?.IsAuthenticated ?? false)
+            {
+                <a class="btn btn-outline-light btn-lg" asp-controller="Dashboard" asp-action="Index">
+                    <i class="bi bi-speedometer2 me-1"></i> Ver dashboard
+                </a>
+            }
+            else
+            {
+                <a class="btn btn-outline-light btn-lg"
+                   asp-controller="Account" asp-action="Login"
+                   asp-route-returnUrl="@(Context?.Request?.Path + Context?.Request?.QueryString)">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="mt-4">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">KPIs de negocio</h5>
+                    <p class="text-muted mb-0">Ventas, márgenes y rotación por período y almacén.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Pronósticos</h5>
+                    <p class="text-muted mb-0">Proyecciones por SKU con soporte para estacionalidad.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Abastecimiento</h5>
+                    <p class="text-muted mb-0">Sugerencias de reorden basadas en nivel de servicio.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,34 @@
+﻿@model AnalisisPredictivoVentas.ViewModels.ImportResultVm
+@{
+    ViewData["Title"] = "Resultado de Importación";
+}
+<div class="container mt-4">
+    <h2>Resultado de Importación</h2>
+    <p><b>Archivo:</b> @Model.NombreArchivo</p>
+    <div class="row g-3">
+        <div class="col-md-3"><div class="card p-3"><b>Ventas nuevas</b><div class="fs-4">@Model.VentasInsertadas</div></div></div>
+        <div class="col-md-3"><div class="card p-3"><b>Duplicadas omitidas</b><div class="fs-4">@Model.VentasOmitidasDuplicadas</div></div></div>
+        <div class="col-md-3"><div class="card p-3"><b>Productos upsert</b><div class="fs-4">@Model.ProductosUpsert</div></div></div>
+        <div class="col-md-3"><div class="card p-3"><b>Clientes upsert</b><div class="fs-4">@Model.ClientesUpsert</div></div></div>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-3"><div class="card p-3"><b>Almacenes upsert</b><div class="fs-4">@Model.AlmacenesUpsert</div></div></div>
+        <div class="col-md-3"><div class="card p-3"><b>MétodosPago upsert</b><div class="fs-4">@Model.MetodosPagoUpsert</div></div></div>
+    </div>
+
+    @if (Model.Errores?.Any() == true)
+    {
+        <div class="alert alert-warning mt-3">
+            <b>Observaciones / Errores:</b>
+            <ul>
+                @foreach (var e in Model.Errores)
+                {
+                    <li>@e</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <a class="btn btn-secondary mt-3" asp-action="Index">Cargar otro archivo</a>
+    <a class="btn btn-primary mt-3" asp-controller="Prediccion" asp-action="Index">Ir a Predicción</a>
+</div>

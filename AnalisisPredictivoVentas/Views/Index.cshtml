@@ -1,0 +1,24 @@
+﻿@model IEnumerable<AnalisisPredictivoVentas.Models.Usuario>
+@{ ViewData["Title"] = "Usuarios"; }
+<h2>Usuarios</h2>
+<p><a asp-action="Create" class="btn btn-sm btn-primary">Nuevo usuario</a></p>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Email</th><th>Nombres</th><th>Rol</th><th>Activo</th><th></th></tr></thead>
+  <tbody>
+  @foreach (var u in Model)
+  {
+    <tr>
+      <td>@u.Email</td>
+      <td>@u.Nombres</td>
+      <td>@u.Rol</td>
+      <td>@(u.Activo ? "Sí" : "No")</td>
+      <td>
+        <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">Editar</a>
+        <form asp-action="ToggleActivo" asp-route-id="@u.Id" method="post" class="d-inline">
+          <button class="btn btn-sm btn-outline-warning">@(u.Activo ? "Inactivar" : "Activar")</button>
+        </form>
+      </td>
+    </tr>
+  }
+  </tbody>
+</table>
