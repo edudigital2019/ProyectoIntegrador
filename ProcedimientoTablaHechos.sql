@@ -1,4 +1,28 @@
-CREATE OR PROCEDURE [dbo].[usp_MaterializarHechosVentas]
+USE [AnalisisVentas];
+GO
+
+/* 1) Crear el tipo tabla dbo.IntList si no existe */
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.types t
+    JOIN sys.schemas s ON s.schema_id = t.schema_id
+    WHERE t.is_table_type = 1 AND t.name = 'IntList' AND s.name = 'dbo'
+)
+BEGIN
+    CREATE TYPE dbo.IntList AS TABLE
+    (
+        Id INT NOT NULL PRIMARY KEY
+    );
+END
+GO
+
+/* 2) Procedimiento: CREATE OR ALTER para evitar drops innecesarios */
+SET ANSI_NULLS ON;
+GO
+SET QUOTED_IDENTIFIER ON;
+GO
+
+CREATE OR ALTER PROCEDURE [dbo].[usp_MaterializarHechosVentas]
     @CabIds dbo.IntList READONLY
 AS
 BEGIN
@@ -26,6 +50,7 @@ BEGIN
     LEFT JOIN dbo.MetodosPago mp ON mp.Id = p.MetodoPagoId
     JOIN #TotalesPago t ON t.VentaCabId = p.VentaCabId;
 
+    /* Si no hubo pagos, asigna 100% a 'N/A' */
     INSERT #DistPago (VentaCabId, MetodoPago, Ratio)
     SELECT c.Id, 'N/A', CAST(1 AS DECIMAL(18,6))
     FROM #Cabs c
@@ -48,6 +73,7 @@ BEGIN
     JOIN #Cabs c ON c.Id = d.VentaCabId
     LEFT JOIN dbo.Productos p ON p.Id = d.ProductoId;
 
+    /* Re-materializa: borra lo previo solo de esos CabIds */
     DELETE h
     FROM dbo.HechosVentas h
     JOIN #Cabs c ON c.Id = h.VentaCabId;
@@ -79,6 +105,8 @@ BEGIN
          CAST(b.NetoLinea * dp.Ratio AS DECIMAL(18,2)),
          CAST(b.Descuento * dp.Ratio AS DECIMAL(18,2))
     FROM #BaseDet b
-    JOIN #Cabs c   ON c.Id = b.VentaCabId
+    JOIN #Cabs c     ON c.Id = b.VentaCabId
     JOIN #DistPago dp ON dp.VentaCabId = c.Id;
 END
+GO
+
