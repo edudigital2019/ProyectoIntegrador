@@ -28,7 +28,7 @@
         public decimal Descuento { get; set; }
         public decimal Subtotal { get; set; }
         public string? Marca { get; set; }
-        public string? Categoria { get; set; }   // si viene null, puedes caer a Producto.Categoria
+        public string? Categoria { get; set; }
         public string? Genero { get; set; }
         public string? Color { get; set; }
         public string? Referencia { get; set; }
@@ -69,7 +69,6 @@
         public string Nombre { get; set; } = null!;
     }
 
-    // ---- CSV row (una fila = un detalle de venta) ----
     public class CsvVentaRow
     {
         public string? Numero { get; set; }
@@ -95,9 +94,8 @@
         public decimal Descuento { get; set; }
         public decimal Subtotal { get; set; }
 
-        // Pagos: dos modos
-        public string? Pagos { get; set; }          // "Efectivo:50|Tarjeta:25"
-        public string? MetodoPago { get; set; }     // alternativo si no usas Pagos
+        public string? Pagos { get; set; } 
+        public string? MetodoPago { get; set; } 
         public decimal? MontoPago { get; set; }
 
         public string? Observacion { get; set; }

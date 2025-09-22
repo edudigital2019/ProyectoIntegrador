@@ -1,0 +1,68 @@
+﻿@{
+    ViewData["Title"] = "Análisis general de Ventas";
+    var year = DateTime.Now.Year;
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="row g-3 mb-3 sales-filters">
+    <div class="col-lg-2">
+        <label class="form-label">Año</label>
+        <input id="year" type="number" class="form-control" value="@year" min="2000" max="2100" />
+    </div>
+
+    <div class="col-lg-3">
+        <label class="form-label">Almacén</label>
+        <div class="dropdown w-100">
+            <button id="almacenDropdownBtn" class="btn btn-white border form-control text-start dropdown-toggle"
+                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                (todos)
+            </button>
+            <div class="dropdown-menu p-2 w-100" style="max-height:280px; overflow:auto;">
+                <div class="mb-2"><input id="almacenFilter" class="form-control form-control-sm" placeholder="Buscar almacén..." /></div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="almacenAll">
+                    <label class="form-check-label" for="almacenAll">Seleccionar todos</label>
+                </div>
+                <div id="almacenChecks"></div>
+            </div>
+        </div>
+        <small class="text-muted" id="almacenSummary">(todos)</small>
+    </div>
+
+    <div class="col-lg-3">
+        <label class="form-label">Categoría (opcional)</label>
+        <input id="categoria" class="form-control" placeholder="Ej: Calzado" />
+    </div>
+
+    <div class="col-lg-3">
+        <label class="form-label">Método de pago</label>
+        <select id="metodoPago" class="form-select">
+            <option value="">(todos)</option>
+        </select>
+    </div>
+
+    <div class="col-lg-12 d-flex gap-2 mt-2">
+        <button id="btnAplicar" class="btn btn-primary">Aplicar filtros</button>
+        <button id="btnLimpiar" class="btn btn-outline-secondary">Limpiar</button>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Total neto</div><div id="kpiNeto" class="fs-4 fw-bold">—</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ticket promedio</div><div id="kpiTicket" class="fs-4 fw-bold">—</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Unidades</div><div id="kpiUnd" class="fs-4 fw-bold">—</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Var. YoY</div><div id="kpiYoY" class="fs-4 fw-bold">—</div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6"><div id="chartMetodosPago" style="min-height: 360px;"></div></div>
+    <div class="col-lg-6"><div id="chartTopAlmacen" style="min-height: 360px;"></div></div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/sales.css" />
+}
+@section Scripts {
+    <script src="~/js/sales-general.js" asp-append-version="true" defer></script>
+}

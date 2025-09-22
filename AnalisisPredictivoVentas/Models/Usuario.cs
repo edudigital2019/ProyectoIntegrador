@@ -16,7 +16,7 @@ namespace AnalisisPredictivoVentas.Models
         [Required, EmailAddress, StringLength(120)]
         public string Email { get; set; } = null!;
 
-        [Required] // Hash con PasswordHasher
+        [Required]
         public string PasswordHash { get; set; } = null!;
 
         [Required, StringLength(120)]

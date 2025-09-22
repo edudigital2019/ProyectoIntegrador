@@ -15,7 +15,7 @@ namespace AnalisisPredictivoVentas.Models
         public int? ClienteId { get; set; }
         public Cliente? Cliente { get; set; }
 
-        public int? EmpleadoId { get; set; }          // ← permisivo si no recibes empleado
+        public int? EmpleadoId { get; set; }
         public Empleado? Empleado { get; set; }
 
         public int AlmacenId { get; set; }

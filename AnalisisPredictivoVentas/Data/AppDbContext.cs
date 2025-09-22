@@ -20,12 +20,12 @@ namespace AnalisisPredictivoVentas.Data
         public DbSet<VentaPago> VentasPago => Set<VentaPago>();
 
         public DbSet<Usuario> Usuarios => Set<Usuario>();
+        public DbSet<HechosVentasModels> HechosVentas => Set<HechosVentasModels>();
 
         protected override void OnModelCreating(ModelBuilder mb)
         {
             base.OnModelCreating(mb);
 
-            // Relaciones de ventas
             mb.Entity<VentaCab>()
               .HasMany(v => v.Detalles)
               .WithOne(d => d.VentaCab)
@@ -38,8 +38,6 @@ namespace AnalisisPredictivoVentas.Data
               .HasForeignKey(p => p.VentaCabId)
               .OnDelete(DeleteBehavior.Cascade);
 
- 
-            // Precisiones decimales
             mb.Entity<ParametrosAbastecimiento>(e =>
             {
                 e.Property(p => p.NivelServicio).HasPrecision(5, 2);     // % 0–100.00
@@ -48,9 +46,7 @@ namespace AnalisisPredictivoVentas.Data
             mb.Entity<VentaCab>(e =>
             {
                 e.Property(p => p.Total).HasPrecision(18, 4);
-               // e.Property(p => p.ImporteIVA).HasPrecision(18, 4);
-                // Si Fecha es DateOnly en tu modelo, descomenta:
-                // e.Property(p => p.Fecha).HasColumnType("date");
+               
             });
 
             mb.Entity<VentaDet>(e =>
@@ -65,7 +61,6 @@ namespace AnalisisPredictivoVentas.Data
                 e.Property(p => p.Monto).HasPrecision(18, 4);
             });
 
-            // Seed de métodos de pago
             mb.Entity<MetodoPago>().HasData(
                 new MetodoPago { Id = 1, Nombre = "Efectivo", PermiteVuelto = true, Activo = true },
                 new MetodoPago { Id = 2, Nombre = "Tarjeta", PermiteVuelto = false, Activo = true },
@@ -78,6 +73,15 @@ namespace AnalisisPredictivoVentas.Data
                 e.Property(x => x.Email).HasMaxLength(120);
                 e.Property(x => x.Nombres).HasMaxLength(120);
                 e.Property(x => x.Rol).HasMaxLength(40);
+            });
+
+            mb.Entity<HechosVentasModels>(e =>
+            {
+                e.ToTable("HechosVentas", "dbo"); // la tabla ya existe y se llena fuera de EF
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Cantidad).HasColumnType("decimal(18,3)");
+                e.Property(x => x.Neto).HasColumnType("decimal(18,2)");
+                e.Property(x => x.Descuento).HasColumnType("decimal(18,2)");
             });
 
 

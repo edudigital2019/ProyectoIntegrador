@@ -1,0 +1,101 @@
+﻿/* wwwroot/css/genero.css */
+:root {
+    --card-radius: 16px;
+    --shadow-1: 0 6px 20px rgba(0,0,0,.06);
+    --shadow-2: 0 8px 24px rgba(0,0,0,.06);
+    --shadow-2h: 0 12px 28px rgba(0,0,0,.08);
+}
+
+/* Encabezado */
+.page-title {
+    display: flex;
+    align-items: center;
+    gap: .75rem
+}
+
+    .page-title .pill {
+        font-size: .75rem;
+        padding: .25rem .5rem;
+        border-radius: 999px;
+        background: rgba(13,110,253,.08);
+        color: #0d6efd;
+        font-weight: 600
+    }
+
+/* Card de filtros */
+.filter-card {
+    border: 0;
+    border-radius: var(--card-radius);
+    background: #fff;
+    box-shadow: var(--shadow-1)
+}
+
+    .filter-card .form-label {
+        font-weight: 600;
+        color: #6c757d
+    }
+
+.dropdown-menu {
+    width: 100%;
+    max-height: 320px;
+    overflow: auto
+}
+
+/* Tarjetas de charts */
+.chart-card {
+    border: 0;
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-2);
+    transition: transform .15s ease,box-shadow .2s ease
+}
+
+    .chart-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-2h)
+    }
+
+    .chart-card .card-body {
+        padding: 1rem 1.25rem
+    }
+
+    .chart-card .card-title {
+        margin-bottom: .25rem;
+        font-weight: 700
+    }
+
+    .chart-card .card-subtitle {
+        color: #6c757d;
+        font-size: .85rem
+    }
+
+/* Grid opcional si usas .chart-col en lugar de col-md/col-lg */
+@media (min-width:768px) {
+    .chart-col {
+        flex: 0 0 auto;
+        width: 50%
+    }
+}
+
+@media (min-width:1200px) {
+    .chart-col {
+        flex: 0 0 auto;
+        width: 33.333333%
+    }
+}
+
+/* Modo oscuro opcional */
+@media (prefers-color-scheme: dark) {
+    .filter-card, .chart-card {
+        background: #1f1f24;
+        box-shadow: none
+    }
+
+    .page-title .pill {
+        background: rgba(13,110,253,.2);
+        color: #7ab4ff
+    }
+
+    .filter-card .form-label, .chart-card .card-subtitle, .text-muted {
+        color: #aeb3bd !important
+    }
+}

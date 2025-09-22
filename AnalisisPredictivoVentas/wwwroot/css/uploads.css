@@ -1,0 +1,52 @@
+﻿
+.dropzone {
+    border: 2px dashed rgba(25,135,84,.35);
+    border-radius: 16px;
+    background: rgba(25,135,84,.04);
+    cursor: pointer;
+    transition: background .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+
+    .dropzone:hover, .dropzone.dz-hover {
+        border-color: rgba(25,135,84,.6);
+        background: rgba(25,135,84,.07);
+        box-shadow: 0 8px 24px rgba(25,135,84,.12);
+    }
+
+.dz-icon i {
+    line-height: 1
+}
+
+pre {
+    white-space: pre-wrap;
+    word-break: break-word
+}
+
+
+@media (prefers-color-scheme: dark) {
+
+    .bg-light, .bg-white {
+        color: #1f2328 !important;
+    }
+
+        .bg-light .text-muted, .bg-white .text-muted {
+            color: #6c757d !important;
+        }
+
+        .bg-light pre, .bg-white pre {
+            color: #1f2328 !important;
+            background: #ffffff !important;
+            border-color: #dee2e6 !important;
+        }
+
+        .bg-light .btn-outline-secondary, .bg-white .btn-outline-secondary {
+            color: #343a40;
+            border-color: #adb5bd;
+        }
+
+            .bg-light .btn-outline-secondary:hover, .bg-white .btn-outline-secondary:hover {
+                background: #e9ecef;
+                border-color: #adb5bd;
+                color: #212529;
+            }
+}

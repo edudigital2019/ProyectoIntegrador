@@ -1,5 +1,5 @@
 ﻿using AnalisisPredictivoVentas.Models;
-using Microsoft.AspNetCore.Identity; // solo para PasswordHasher
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace AnalisisPredictivoVentas.Data

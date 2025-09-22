@@ -48,6 +48,30 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJlZGljY2lvblxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
+[E:/UNIANDES/AplicacionesWeb/ProyectoIntegrador/AnalisisPredictivoVentas/Views/Sales/General.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcR2VuZXJhbC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/UNIANDES/AplicacionesWeb/ProyectoIntegrador/AnalisisPredictivoVentas/Views/Sales/Genero.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcR2VuZXJvLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/UNIANDES/AplicacionesWeb/ProyectoIntegrador/AnalisisPredictivoVentas/Views/Sales/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/UNIANDES/AplicacionesWeb/ProyectoIntegrador/AnalisisPredictivoVentas/Views/Sales/Pagos.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcUGFnb3MuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/UNIANDES/AplicacionesWeb/ProyectoIntegrador/AnalisisPredictivoVentas/Views/Sales/Productos.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcUHJvZHVjdG9zLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/UNIANDES/AplicacionesWeb/ProyectoIntegrador/AnalisisPredictivoVentas/Views/Sales/Vendedores.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcVmVuZGVkb3Jlcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [E:/UNIANDES/AplicacionesWeb/ProyectoIntegrador/AnalisisPredictivoVentas/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 

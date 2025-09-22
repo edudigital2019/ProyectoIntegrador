@@ -5,9 +5,7 @@ using AnalisisPredictivoVentas.Models;
 
 namespace AnalisisPredictivoVentas.Controllers
 {
-    // Si aún no activas Identity, quita el atributo Authorize
-    //[Authorize(Roles = "Administrador,ResponsableAlmacen")]
-    //[AllowAnonymous]
+
     [Authorize(Roles = $"{Roles.Administrador},{Roles.ResponsableCarga}")]
     public class UploadsController : Controller
     {

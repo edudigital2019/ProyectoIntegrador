@@ -1,0 +1,81 @@
+﻿@{
+    ViewData["Title"] = "Ventas por Género";
+    var year = DateTime.Now.Year;
+}
+
+<link rel="stylesheet" href="~/css/genero.css" asp-append-version="true" />
+
+<h2 class="page-title mb-3">
+    @ViewData["Title"]
+    <span class="pill">Dashboard</span>
+</h2>
+
+<div class="card filter-card mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-6 col-md-2">
+                <label class="form-label">Año</label>
+                <input id="year" type="number" class="form-control" value="@year" min="2000" max="2100" />
+            </div>
+
+            <div class="col-6 col-md-3">
+                <label class="form-label">Mes</label>
+                <select id="month" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label">Almacén</label>
+                <div class="dropdown w-100">
+                    <button id="almacenDropdownBtn" class="btn btn-outline-secondary w-100 text-start"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <span id="almacenSummary">Todos</span>
+                    </button>
+                    <div class="dropdown-menu p-3">
+                        <input id="almacenFilter" type="text" class="form-control mb-2" placeholder="Buscar almacén..." />
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="almacenAll" checked>
+                            <label class="form-check-label" for="almacenAll">Seleccionar todos</label>
+                        </div>
+                        <div id="almacenChecks" class="d-grid gap-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <div class="text-muted small">
+                    Consejo: pasa el mouse sobre cada porción para ver <strong>Ventas</strong>, <strong>Unidades</strong> y <strong>Tickets</strong>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="mb-3">Distribución de ventas por género <span class="text-muted fw-normal">(por almacén)</span></h5>
+
+<div id="chartsGenerosGrid" class="row g-4"></div>
+
+@section Scripts {
+
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+
+    <script>
+        window.API_CHARTS_BASE = '@Url.Content("~/api/charts")';
+    </script>
+
+    <script src="~/js/genero.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,65 @@
+﻿@{
+    ViewData["Title"] = "Tendencias de Ventas";
+    var year = DateTime.Now.Year;
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="row g-3 mb-3 sales-filters">
+    <div class="col-lg-2">
+        <label class="form-label">Año</label>
+        <input id="year" type="number" class="form-control" value="@year" min="2000" max="2100" />
+    </div>
+
+    <div class="col-lg-3">
+        <label class="form-label">Almacén</label>
+        <div class="dropdown w-100">
+            <button id="almacenDropdownBtn" class="btn btn-white border form-control text-start dropdown-toggle"
+                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                (todos)
+            </button>
+
+            <div class="dropdown-menu p-2 w-100" style="max-height:280px; overflow:auto;">
+                <div class="mb-2"><input id="almacenFilter" class="form-control form-control-sm" placeholder="Buscar almacén..." /></div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="almacenAll">
+                    <label class="form-check-label" for="almacenAll">Seleccionar todos</label>
+                </div>
+                <div id="almacenChecks"><!-- checks --></div>
+            </div>
+        </div>
+        <small class="text-muted" id="almacenSummary">(todos)</small>
+    </div>
+
+    <div class="col-lg-3">
+        <label class="form-label">Categoría (opcional)</label>
+        <input id="categoria" class="form-control" placeholder="Ej: Calzado" />
+    </div>
+
+    <div class="col-lg-3">
+        <label class="form-label">Método de pago</label>
+        <select id="metodoPago" class="form-select">
+            <option value="">(todos)</option>
+        </select>
+    </div>
+
+    <div class="col-lg-12 d-flex gap-2 mt-2">
+        <button id="btnAplicar" class="btn btn-primary">Aplicar filtros</button>
+        <button id="btnLimpiar" class="btn btn-outline-secondary">Limpiar</button>
+    </div>
+</div>
+
+<div id="chartVentasMes" style="min-height: 420px;"></div>
+
+<hr class="my-4" />
+<h5 class="mb-2">Mapa de calor: Ventas por mes y almacén</h5>
+
+<div id="chartHeatmap" style="min-height: 420px;"></div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/sales.css" />
+}
+
+@section Scripts {
+    <script src="~/js/sales-charts.js" asp-append-version="true" defer></script>
+}
