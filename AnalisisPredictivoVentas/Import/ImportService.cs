@@ -46,7 +46,13 @@ namespace AnalisisPredictivoVentas.Import
                 return result;
             }
 
-            // Cabeceras afectadas para materializar hechos (sin triggers)
+            result.TotalProcesadas = dto.Ventas.Count;
+
+            decimal totalBruto = 0m, totalNeto = 0m, totalDesc = 0m, totalCant = 0m, totalPagos = 0m;
+            int lineas = 0;
+            DateTime? minFecha = null, maxFecha = null;
+            var sucursales = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             var tocadas = new HashSet<int>();
 
             await using var tx = await _db.Database.BeginTransactionAsync();
@@ -54,7 +60,13 @@ namespace AnalisisPredictivoVentas.Import
             {
                 foreach (var v in dto.Ventas)
                 {
-                    // ===== Almacén (obligatorio)
+                    // Período
+                    if (v.Fecha != default)
+                    {
+                        minFecha = !minFecha.HasValue || v.Fecha < minFecha ? v.Fecha : minFecha;
+                        maxFecha = !maxFecha.HasValue || v.Fecha > maxFecha ? v.Fecha : maxFecha;
+                    }
+
                     var almDto = v.Almacen;
                     if (almDto is null || string.IsNullOrWhiteSpace(almDto.Codigo))
                     {
@@ -62,13 +74,13 @@ namespace AnalisisPredictivoVentas.Import
                         continue;
                     }
                     var almacen = await UpsertAlmacenAsync(almDto, result);
+                    sucursales.Add(string.IsNullOrWhiteSpace(almacen.Codigo) ? almacen.Id.ToString() : almacen.Codigo);
 
                     // ===== Cliente (opcional)
                     Cliente? cliente = null;
                     if (v.Cliente is not null)
                         cliente = await UpsertClienteAsync(v.Cliente, result);
 
-                    // ===== Empleado (opcional)
                     Empleado? empleado = null;
                     if (v.Empleado is not null)
                     {
@@ -94,7 +106,6 @@ namespace AnalisisPredictivoVentas.Import
                         }
                     }
 
-                    // ===== Idempotencia (Numero + AlmacenId)
                     VentaCab? cab = null;
                     if (!string.IsNullOrWhiteSpace(v.Numero))
                     {
@@ -126,18 +137,17 @@ namespace AnalisisPredictivoVentas.Import
                         cab.EmpleadoId = empleado?.Id;
                         cab.Observacion = v.Observacion;
 
-                        // reemplazar detalles y pagos
                         _db.VentasDet.RemoveRange(cab.Detalles);
                         _db.VentasPago.RemoveRange(cab.Pagos);
                     }
 
-                    // ===== Detalles
-                    decimal total = 0m;
+                    decimal totalVenta = 0m;
                     foreach (var d in v.Detalles)
                     {
                         var prod = await UpsertProductoAsync(d.Producto, result);
 
-                        var neto = d.Subtotal > 0
+                        var brutoLinea = d.PrecioUnitario * d.Cantidad;
+                        var netoLinea = d.Subtotal > 0
                             ? d.Subtotal
                             : (d.PrecioUnitario * d.Cantidad - d.Descuento);
 
@@ -147,7 +157,7 @@ namespace AnalisisPredictivoVentas.Import
                             Cantidad = d.Cantidad,
                             PrecioUnitario = d.PrecioUnitario,
                             Descuento = d.Descuento,
-                            Subtotal = neto,
+                            Subtotal = netoLinea,
                             Marca = d.Marca,
                             Categoria = d.Categoria ?? d.Producto.Categoria,
                             Genero = d.Genero,
@@ -157,20 +167,33 @@ namespace AnalisisPredictivoVentas.Import
                         };
 
                         cab.Detalles.Add(det);
-                        total += neto;
+
+                        totalVenta += netoLinea;
+                        totalBruto += brutoLinea;
+                        totalNeto += netoLinea;
+                        totalDesc += (brutoLinea - netoLinea);
+                        totalCant += d.Cantidad;
+                        lineas++;
                     }
 
-                    // ===== Pagos
                     foreach (var p in v.Pagos)
                     {
                         var mp = await UpsertMetodoPagoAsync(p.Metodo, result);
                         cab.Pagos.Add(new VentaPago { MetodoPagoId = mp.Id, Monto = p.Monto });
+
+                        totalPagos += p.Monto;
+                        result.PagosPorMetodo[mp.Nombre] = result.PagosPorMetodo.TryGetValue(mp.Nombre, out var acc)
+                            ? acc + p.Monto
+                            : p.Monto;
                     }
 
-                    cab.Total = total;
+                    cab.Total = totalVenta;
 
-                    await _db.SaveChangesAsync(); // asegura cab.Id
+                    await _db.SaveChangesAsync();
+
                     if (nueva) result.VentasInsertadas++;
+                    else result.VentasActualizadas++;
+
                     tocadas.Add(cab.Id);
                 }
 
@@ -183,7 +206,6 @@ namespace AnalisisPredictivoVentas.Import
                 return result;
             }
 
-            // ===== Materializar hechos (sin triggers)
             try
             {
                 await MaterializarHechosAsync(tocadas);
@@ -193,10 +215,19 @@ namespace AnalisisPredictivoVentas.Import
                 result.Errores.Add($"Advertencia: materialización falló: {ex.Message}");
             }
 
+            // ===== Asigna totales calculados
+            result.LineasDetalle = lineas;
+            result.TotalCantidad = totalCant;
+            result.TotalBruto = totalBruto;
+            result.TotalDescuento = totalDesc;
+            result.TotalNeto = totalNeto;
+            result.TotalPagos = totalPagos;
+            result.MinFecha = minFecha;
+            result.MaxFecha = maxFecha;
+            result.SucursalesAfectadas = sucursales.Count;
+
             return result;
         }
-
-        // ---------------- Parsers ----------------
 
         private static ArchivoVentasDto? ParseJson(string json)
         {
@@ -325,8 +356,6 @@ namespace AnalisisPredictivoVentas.Import
             return venta;
         }
 
-        // ---------------- CSV (pipe |) ----------------
-
         private static ArchivoVentasDto? ParseCsv(string csvText)
         {
             var cfg = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -452,8 +481,6 @@ namespace AnalisisPredictivoVentas.Import
             return DateTime.Today;
         }
 
-        // ---------------- Upserts ----------------
-
         private async Task<Producto> UpsertProductoAsync(ProductoDto dto, ImportResultVm res)
         {
             var prod = await _db.Productos.FirstOrDefaultAsync(p => p.Codigo == dto.Codigo);
@@ -558,8 +585,6 @@ namespace AnalisisPredictivoVentas.Import
             return mp;
         }
 
-        // ---------------- Materialización de Hechos (sin triggers) ----------------
-
         private async Task MaterializarHechosAsync(IEnumerable<int> cabIds)
         {
             var ids = cabIds.Distinct().ToList();
@@ -596,14 +621,13 @@ namespace AnalisisPredictivoVentas.Import
         }
     }
 
-    // ================== CSV DTOs & Map ==================
 
     public class VentaCsvRow
     {
         public string Sucursal { get; set; } = "";
         public string NoFacturaVenta { get; set; } = "";
         public string Vendedor { get; set; } = "";
-        public string Fecha { get; set; } = "";        // string; se parsea a nivel de DTO
+        public string Fecha { get; set; } = ""; 
         public string Cliente { get; set; } = "";
         public string Producto { get; set; } = "";
         public string Categoria { get; set; } = "";
@@ -628,7 +652,7 @@ namespace AnalisisPredictivoVentas.Import
         public VentaCsvRowMap()
         {
             Map(m => m.Sucursal).Name("SUCURSAL");
-            Map(m => m.NoFacturaVenta).Name("NOFACTURAVENTA"); // "NO.FACTURA VENTA" -> normalizado
+            Map(m => m.NoFacturaVenta).Name("NOFACTURAVENTA");
             Map(m => m.Vendedor).Name("VENDEDOR");
             Map(m => m.Fecha).Name("FECHA");
             Map(m => m.Cliente).Name("CLIENTE");
@@ -636,14 +660,14 @@ namespace AnalisisPredictivoVentas.Import
             Map(m => m.Categoria).Name("CATEGORIA");
             Map(m => m.Descripcion).Name("DESCRIPCION");
             Map(m => m.Cantidad).Name("CANTIDAD");
-            Map(m => m.PrecioVenta).Name("PRECIOVENTA");       // "PRECIO.VENTA" -> "PRECIOVENTA"
+            Map(m => m.PrecioVenta).Name("PRECIOVENTA");
             Map(m => m.Descuento).Name("DESCUENTO");
-            Map(m => m.PorcDescuento).Name("PORDESCUENTO");    // "%DESCUENTO" -> "PORDESCUENTO"
+            Map(m => m.PorcDescuento).Name("PORDESCUENTO");
             Map(m => m.Neto).Name("NETO");
             Map(m => m.DescripcionPago).Name("DESCRIPCIONPAGO");
             Map(m => m.CodFormaPago).Name("CODFORMAPAGO");
             Map(m => m.Marca).Name("MARCA");
-            Map(m => m.TipoSubtipo).Name("TIPOSUBTIPO");       // "TIPO / SUBTIPO" -> "TIPOSUBTIPO"
+            Map(m => m.TipoSubtipo).Name("TIPOSUBTIPO");
             Map(m => m.Genero).Name("GENERO");
             Map(m => m.Color).Name("COLOR");
             Map(m => m.Referencia).Name("REFERENCIA");
@@ -651,15 +675,4 @@ namespace AnalisisPredictivoVentas.Import
         }
     }
 
-    // ================== Helpers DTO raíz ==================
-    // (Asumo que ya tienes estos DTOs en tu proyecto;
-    // si no, déjame y te los comparto completos.)
-    // - ArchivoVentasDto { Almacen?, List<VentaDto> Ventas }
-    // - VentaDto { Numero, Fecha, Observacion, Almacen, Cliente, Empleado, List<VentaDetDto> Detalles, List<VentaPagoDto> Pagos }
-    // - VentaDetDto { ProductoDto Producto, decimal Cantidad, decimal PrecioUnitario, decimal Descuento, decimal Subtotal }
-    // - VentaPagoDto { string Metodo, decimal Monto }
-    // - ProductoDto { Codigo, Nombre, string? Categoria, decimal? PrecioVenta }
-    // - ClienteDto { Identificacion, Nombre, Email, Telefono }
-    // - EmpleadoDto { UsuarioIdIdentity, Nombre }
-    // - AlmacenDto { Codigo, Nombre }
 }

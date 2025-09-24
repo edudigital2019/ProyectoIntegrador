@@ -1,12 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
-using AnalisisPredictivoVentas.Data;
+﻿using AnalisisPredictivoVentas.Data;
 using AnalisisPredictivoVentas.Models;
+using AnalisisPredictivoVentas.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace AnalisisPredictivoVentas.Controllers
 {
@@ -17,19 +19,40 @@ namespace AnalisisPredictivoVentas.Controllers
 
         public AccountController(AppDbContext db) => _db = db;
 
+        private static string NormalizeEmail(string email)
+            => (email ?? string.Empty).Trim().ToLowerInvariant();
+
+        // ---------------- Login ----------------
+
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Login(string? returnUrl = null)
         {
+            // Si ya está autenticado, redirige a destino o Home
+            if (User?.Identity?.IsAuthenticated == true)
+            {
+                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+                return RedirectToAction("Index", "Home");
+            }
+
             ViewData["ReturnUrl"] = returnUrl;
-            return View();
+            return View(new LoginVm());
         }
 
         [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginVm model, string? returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             if (!ModelState.IsValid) return View(model);
 
-            var u = await _db.Usuarios.FirstOrDefaultAsync(x => x.Email == model.Email && x.Activo);
+            var emailNorm = NormalizeEmail(model.Email);
+
+            var u = await _db.Usuarios
+                .FirstOrDefaultAsync(x => x.Activo && x.Email.ToLower() == emailNorm);
+
             if (u != null)
             {
                 var vr = _hasher.VerifyHashedPassword(u, u.PasswordHash, model.Password);
@@ -38,17 +61,28 @@ namespace AnalisisPredictivoVentas.Controllers
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier, u.Id.ToString()),
-                        new Claim(ClaimTypes.Name, u.Nombres),
+                        new Claim(ClaimTypes.Name, u.Nombres ?? u.Email),
                         new Claim(ClaimTypes.Email, u.Email),
                         new Claim(ClaimTypes.Role, u.Rol)
                     };
+
+                    // Permisos por rol → claims "perm"
+                    if (Permisos.PorRol.TryGetValue(u.Rol, out var permisos))
+                    {
+                        foreach (var p in permisos)
+                            claims.Add(new Claim("perm", p));
+                    }
+
                     var id = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     await HttpContext.SignInAsync(
                         CookieAuthenticationDefaults.AuthenticationScheme,
                         new ClaimsPrincipal(id),
                         new AuthenticationProperties { IsPersistent = model.Recordar });
 
-                    return Redirect(returnUrl ?? "/");
+                    if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                        return Redirect(returnUrl);
+
+                    return RedirectToAction("Index", "Home");
                 }
             }
 
@@ -56,14 +90,25 @@ namespace AnalisisPredictivoVentas.Controllers
             return View(model);
         }
 
+        // ---------------- Logout ----------------
+
+        [Authorize]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            // Por si quedara la cookie de auth (ajusta el nombre si configuraste uno custom)
+            Response.Cookies.Delete(".AspNetCore.Cookies");
+
             return RedirectToAction("Login");
         }
 
+        // ---------------- Acceso denegado ----------------
+
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Denied() => View();
     }
 

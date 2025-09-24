@@ -1,13 +1,16 @@
 wwwroot\css\genero.css
 wwwroot\css\layout-modern.css
 wwwroot\css\site.css
+wwwroot\css\uploads.css
 wwwroot\favicon.ico
 wwwroot\js\genero.js
 wwwroot\js\highcharts-theme.js
 wwwroot\js\sales-charts.js
 wwwroot\js\sales-general.js
+wwwroot\js\sales-sellers-compare.js
 wwwroot\js\sales-top.js
 wwwroot\js\site.js
+wwwroot\js\uploads.js
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.min.css
@@ -65,5 +68,3 @@ wwwroot\lib\jquery\dist\jquery.js
 wwwroot\lib\jquery\dist\jquery.min.js
 wwwroot\lib\jquery\dist\jquery.min.map
 wwwroot\lib\jquery\LICENSE.txt
-wwwroot\css\uploads.css
-wwwroot\js\uploads.js

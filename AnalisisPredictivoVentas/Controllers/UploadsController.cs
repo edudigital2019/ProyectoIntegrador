@@ -1,12 +1,13 @@
 ﻿using AnalisisPredictivoVentas.Import;
+using AnalisisPredictivoVentas.Models;
+using AnalisisPredictivoVentas.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using AnalisisPredictivoVentas.Models;
 
 namespace AnalisisPredictivoVentas.Controllers
 {
 
-    [Authorize(Roles = $"{Roles.Administrador},{Roles.ResponsableCarga}")]
+    [Authorize(Policy = Permisos.SubirInformacion)]
     public class UploadsController : Controller
     {
         private readonly IImportService _import;
@@ -30,5 +31,5 @@ namespace AnalisisPredictivoVentas.Controllers
             return View("Resultado", res);
         }
     }
-
 }
+

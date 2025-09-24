@@ -1,8 +1,26 @@
 ﻿@{
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var act = ViewContext.RouteData.Values["action"]?.ToString();
+
     var pathWithQuery = (Context?.Request?.Path + Context?.Request?.QueryString).ToString();
+    var safeReturnUrl =
+        string.Equals(ctrl, "Account", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(act, "Login", StringComparison.OrdinalIgnoreCase)
+        ? "/"
+        : pathWithQuery;
 }
+
+@using AnalisisPredictivoVentas.Security
+
+@{
+    bool isAuth = User?.Identity?.IsAuthenticated ?? false;
+    bool canAdmin = isAuth && User.HasClaim("perm", Permisos.AdministrarUsuarios);
+    bool canUpload = isAuth && User.HasClaim("perm", Permisos.SubirInformacion);
+    bool canDash = isAuth && User.HasClaim("perm", Permisos.VerDashboardGeneral);
+    bool canTop = isAuth && User.HasClaim("perm", Permisos.VerTopProductos);
+    bool canVend = isAuth && User.HasClaim("perm", Permisos.VerVendedoresCompare);
+}
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,6 +35,24 @@
     <link rel="stylesheet" href="~/css/layout-modern.css" asp-append-version="true" />
 
     @RenderSection("Styles", required: false)
+
+    <!-- Parche: que el overlay “glass” no tape el dropdown -->
+    <style>
+        .navbar-glass {
+            position: relative;
+            z-index: 1030;
+        }
+
+            .navbar-glass::before {
+                pointer-events: none !important;
+                z-index: 0 !important;
+            }
+
+            .navbar-glass .dropdown-menu {
+                position: absolute;
+                z-index: 2000;
+            }
+    </style>
 </head>
 <body class="layout-body">
 
@@ -42,21 +78,24 @@
                         </button>
                     </li>
 
-                    @if (User.Identity?.IsAuthenticated ?? false)
+                    @if (isAuth)
                     {
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-person-circle me-2"></i>@User.Identity!.Name
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                <li><a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door me-2"></i>Inicio</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        <i class="bi bi-house-door me-2"></i>Inicio
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider" /></li>
                                 <li>
-                                    <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-1">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                                            <i class="bi bi-box-arrow-right me-1"></i> Cerrar sesión
-                                        </button>
-                                    </form>
+                                    <!-- Botón que envía el form oculto SIN JS -->
+                                    <button class="dropdown-item text-danger" type="submit" form="logoutForm">
+                                        <i class="bi bi-box-arrow-right me-1"></i> Cerrar sesión
+                                    </button>
                                 </li>
                             </ul>
                         </li>
@@ -64,8 +103,9 @@
                     else
                     {
                         <li class="nav-item">
-                            <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Login"
-                               asp-route-returnUrl="@pathWithQuery">
+                            <a class="btn btn-outline-light btn-sm"
+                               asp-controller="Account" asp-action="Login"
+                               asp-route-returnUrl="@safeReturnUrl">
                                 <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión
                             </a>
                         </li>
@@ -74,6 +114,14 @@
             </div>
         </div>
     </nav>
+
+    <!-- Form de logout oculto (fuera del dropdown y del collapse) -->
+    @if (isAuth)
+    {
+        <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post" class="d-none">
+            @Html.AntiForgeryToken()
+        </form>
+    }
 
     <div class="layout-wrapper">
 
@@ -88,40 +136,58 @@
                     <i class="bi bi-house-door"></i><span>Inicio</span>
                 </a>
 
-                <a class="nav-link @(ctrl == "Sales" && (act == "Index" || string.IsNullOrEmpty(act)) ? "active" : "")"
-                   asp-controller="Sales" asp-action="Index">
-                    <i class="bi bi-activity"></i><span>Tendencias</span>
-                </a>
+                @if (canDash)
+                {
+                    <a class="nav-link @(ctrl == "Sales" && (act == "Index" || string.IsNullOrEmpty(act)) ? "active" : "")"
+                       asp-controller="Sales" asp-action="Index">
+                        <i class="bi bi-activity"></i><span>Tendencias</span>
+                    </a>
+                }
 
-                <div class="sidebar-sep"></div>
-                <div class="sidebar-section">Reportes</div>
+                @if (canDash || canTop || canVend)
+                {
+                    <div class="sidebar-sep"></div>
+                    <div class="sidebar-section">Reportes</div>
+                }
 
-                <a class="nav-link @(ctrl == "Sales" && act == "General" ? "active" : "")"
-                   asp-controller="Sales" asp-action="General">
-                    <i class="bi bi-bar-chart-steps"></i><span>Análisis general</span>
-                </a>
+                @if (canDash)
+                {
+                    <a class="nav-link @(ctrl == "Sales" && act == "General" ? "active" : "")"
+                       asp-controller="Sales" asp-action="General">
+                        <i class="bi bi-bar-chart-steps"></i><span>Análisis general</span>
+                    </a>
+                }
 
-                <a class="nav-link @(ctrl == "Sales" && act == "Productos" ? "active" : "")"
-                   asp-controller="Sales" asp-action="Productos">
-                    <i class="bi bi-basket3"></i><span>Top productos</span>
-                </a>
+                @if (canTop)
+                {
+                    <a class="nav-link @(ctrl == "Sales" && act == "Productos" ? "active" : "")"
+                       asp-controller="Sales" asp-action="Productos">
+                        <i class="bi bi-basket3"></i><span>Top productos</span>
+                    </a>
+                }
 
-                <a class="nav-link @(ctrl == "Sales" && act == "Vendedores" ? "active" : "")"
-                   asp-controller="Sales" asp-action="Vendedores">
-                    <i class="bi bi-person-badge"></i><span>Top vendedores</span>
-                </a>
+                @if (canVend)
+                {
+                    <a class="nav-link @(ctrl == "Sales" && act == "VendedoresCompare" ? "active" : "")"
+                       asp-controller="Sales" asp-action="VendedoresCompare">
+                        <i class="bi bi-person-badge"></i><span>Top vendedores</span>
+                    </a>
+                }
 
-                <a class="nav-link @(ctrl == "Sales" && act == "Pagos" ? "active" : "")"
-                   asp-controller="Sales" asp-action="Pagos">
-                    <i class="bi bi-credit-card-2-front"></i><span>Métodos de pago</span>
-                </a>
+                @if (canDash)
+                {
+                    <a class="nav-link @(ctrl == "Sales" && act == "Pagos" ? "active" : "")"
+                       asp-controller="Sales" asp-action="Pagos">
+                        <i class="bi bi-credit-card-2-front"></i><span>Métodos de pago</span>
+                    </a>
 
-                <a class="nav-link @(ctrl == "Sales" && act == "Genero" ? "active" : "")"
-                   asp-controller="Sales" asp-action="Genero">
-                    <i class="bi bi-people"></i><span>Ventas por género</span>
-                </a>
+                    <a class="nav-link @(ctrl == "Sales" && act == "Genero" ? "active" : "")"
+                       asp-controller="Sales" asp-action="Genero">
+                        <i class="bi bi-people"></i><span>Ventas por género</span>
+                    </a>
+                }
 
-                @if (User.IsInRole("Administrador") || User.IsInRole("ResponsableCarga"))
+                @if (canUpload)
                 {
                     <div class="sidebar-sep"></div>
                     <div class="sidebar-section">Operación</div>
@@ -131,7 +197,8 @@
                         <i class="bi bi-cloud-upload"></i><span>Cargas</span>
                     </a>
                 }
-                @if (User.IsInRole("Administrador"))
+
+                @if (canAdmin)
                 {
                     <a class="nav-link @(ctrl == "Usuarios" ? "active" : "")"
                        asp-controller="Usuarios" asp-action="Index">
@@ -145,8 +212,24 @@
                 }
             </nav>
         </aside>
+
         <main class="main">
             <div class="container-fluid py-4">
+                @if (TempData["ok"] is string okMsg)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @okMsg
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["Err"] is string errMsg)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @errMsg
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
                 @RenderBody()
                 @RenderSection("Modals", required: false)
             </div>
@@ -181,22 +264,17 @@
     <script>
         (function () {
             const body = document.body;
-            const sidebar = document.getElementById('sidebar');
             const btnDesktop = document.getElementById('btnSidebarToggle');
             const btnMobile = document.getElementById('btnSidebarToggleMobile');
             const KEY = 'layout.sidebar.collapsed';
 
-            function applyState(collapsed) {
-                body.classList.toggle('sidebar-collapsed', collapsed);
-            }
-            const saved = localStorage.getItem(KEY);
-            applyState(saved === '1');
+            function applyState(collapsed) { body.classList.toggle('sidebar-collapsed', collapsed); }
+            applyState(localStorage.getItem(KEY) === '1');
 
             function toggle() {
-                const isCollapsed = body.classList.toggle('sidebar-collapsed');
-                localStorage.setItem(KEY, isCollapsed ? '1' : '0');
+                const collapsed = body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem(KEY, collapsed ? '1' : '0');
             }
-
             btnDesktop?.addEventListener('click', toggle);
             btnMobile?.addEventListener('click', toggle);
         })();

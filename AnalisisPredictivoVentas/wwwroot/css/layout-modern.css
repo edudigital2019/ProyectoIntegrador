@@ -195,3 +195,19 @@
         border: 1px solid rgba(255,255,255,.04)
     }
 }
+
+/* --- Fix: dropdown tapado por el overlay del navbar --- */
+.navbar-glass {
+    position: relative;
+}
+
+    .navbar-glass::before {
+        pointer-events: none; /* que no intercepte clics */
+        z-index: 0; /* detrás del contenido real */
+    }
+
+    /* Asegura que el menú quede por encima del overlay */
+    .navbar-glass .dropdown-menu {
+        position: absolute;
+        z-index: 2000;
+    }

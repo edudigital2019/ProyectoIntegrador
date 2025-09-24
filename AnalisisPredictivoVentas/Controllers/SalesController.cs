@@ -10,5 +10,7 @@ namespace AnalisisPredictivoVentas.Controllers
         public IActionResult Vendedores() => View();
         public IActionResult Pagos() => View();
         public IActionResult Genero() => View();
+
+        public IActionResult VendedoresCompare() => View();
     }
 }

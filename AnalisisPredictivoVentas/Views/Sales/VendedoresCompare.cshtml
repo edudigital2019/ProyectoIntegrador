@@ -1,0 +1,135 @@
+﻿@{
+    ViewData["Title"] = "Vendedores — Comparativo";
+    var year = DateTime.Now.Year;
+}
+<h2 class="mb-3">@ViewData["Title"]</h2>
+
+<div class="row g-3 mb-3 sales-filters">
+    <div class="col-md-2">
+        <label class="form-label">Periodo A — Año</label>
+        <input id="yearA" type="number" class="form-control" value="@year" min="2000" max="2100" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Mes desde</label>
+        <input id="mFromA" type="number" class="form-control" value="1" min="1" max="12" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Mes hasta</label>
+        <input id="mToA" type="number" class="form-control" value="12" min="1" max="12" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Periodo B — Año</label>
+        <input id="yearB" type="number" class="form-control" value="@(year - 1)" min="2000" max="2100" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Mes desde</label>
+        <input id="mFromB" type="number" class="form-control" value="1" min="1" max="12" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Mes hasta</label>
+        <input id="mToB" type="number" class="form-control" value="12" min="1" max="12" />
+    </div>
+</div>
+
+<div class="row g-3 mb-3 sales-filters">
+    <div class="col-lg-4">
+        <label class="form-label">Almacén</label>
+        <div class="dropdown w-100">
+            <button id="almacenDropdownBtn" class="btn btn-outline-secondary w-100 dropdown-toggle" data-bs-toggle="dropdown">Seleccionar almacenes</button>
+            <div class="dropdown-menu p-3 w-100" style="max-height: 300px; overflow:auto">
+                <input id="almacenFilter" class="form-control mb-2" placeholder="Buscar..." />
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="almacenAll">
+                    <label class="form-check-label" for="almacenAll">Seleccionar todos</label>
+                </div>
+                <div id="almacenChecks"></div>
+            </div>
+            <div id="almacenSummary" class="form-text"></div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Métrica (orden Top)</label>
+        <select id="metric" class="form-select">
+            <option value="neto">Monto (Neto)</option>
+            <option value="unidades">Unidades</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Top N</label>
+        <input id="topN" type="number" class="form-control" value="10" min="1" max="50" />
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button id="btnAplicar" class="btn btn-primary w-100">Aplicar</button>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button id="btnYoY" class="btn btn-outline-secondary w-100" title="Usar A vs A-1">YoY</button>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Top del periodo A</div>
+                <h4 id="kpiTopNombre">—</h4>
+                <div id="kpiTopValor" class="fw-semibold">—</div>
+                <div id="kpiTopDelta" class="small text-muted">—</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <button id="btnExport" class="btn btn-success">Exportar CSV</button>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12">
+        <div id="chartCompare" class="mb-4"></div>
+    </div>
+    <div class="col-12">
+        <div id="chartTrend" class="mb-4"></div>
+    </div>
+    <div class="col-12">
+        <div class="table-responsive">
+            <table id="tblCompare" class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Empleado</th>
+                        <th class="text-end">A (Neto)</th>
+                        <th class="text-end">B (Neto)</th>
+                        <th class="text-end">Δ Neto</th>
+                        <th class="text-end">% Neto</th>
+                        <th class="text-end">A (Und)</th>
+                        <th class="text-end">B (Und)</th>
+                        <th class="text-end">Δ Und</th>
+                        <th class="text-end">% Und</th>
+                        <th class="text-end">Tickets A</th>
+                        <th class="text-end">Tickets B</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal detalle por almacén -->
+<div class="modal fade" id="mdlDetalle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mdlTitle">Detalle por almacén</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="chartDetalleAlmacen"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/sales-sellers-compare.js"></script>
+}

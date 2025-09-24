@@ -1,5 +1,6 @@
-using AnalisisPredictivoVentas.Data;
+﻿using AnalisisPredictivoVentas.Data;
 using AnalisisPredictivoVentas.Import;
+using AnalisisPredictivoVentas.Security;
 using AnalisisPredictivoVentas.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -21,9 +22,19 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         opt.LoginPath = "/Account/Login";
         opt.AccessDeniedPath = "/Account/Denied";
+        opt.SlidingExpiration = true;
+        // opt.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
 
-builder.Services.AddAuthorization();
+// AUTORIZACIÓN: solo políticas (SIN FallbackPolicy)
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Permisos.AdministrarUsuarios, p => p.RequireClaim("perm", Permisos.AdministrarUsuarios));
+    options.AddPolicy(Permisos.SubirInformacion, p => p.RequireClaim("perm", Permisos.SubirInformacion));
+    options.AddPolicy(Permisos.VerDashboardGeneral, p => p.RequireClaim("perm", Permisos.VerDashboardGeneral));
+    options.AddPolicy(Permisos.VerTopProductos, p => p.RequireClaim("perm", Permisos.VerTopProductos));
+    options.AddPolicy(Permisos.VerVendedoresCompare, p => p.RequireClaim("perm", Permisos.VerVendedoresCompare));
+});
 
 // Servicios dominio
 builder.Services.AddScoped<IImportService, ImportService>();

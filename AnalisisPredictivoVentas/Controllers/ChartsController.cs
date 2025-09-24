@@ -88,7 +88,7 @@ public class ChartsController : ControllerBase
     [HttpGet("ventas-por-mes-multi")]
     public async Task<ActionResult<ChartData>> VentasPorMesMulti(
     int? year,
-    [FromQuery] int[] almacenIds, 
+    [FromQuery] int[] almacenIds,
     string? categoria,
     string? metodoPago)
     {
@@ -135,65 +135,65 @@ public class ChartsController : ControllerBase
         return Ok(new ChartData(categorias, series));
     }
 
-[HttpGet("ventas-heatmap")]
-public async Task<ActionResult<object>> VentasHeatmap(
-    int? year,
-    [FromQuery] int[]? almacenIds,
-    string? categoria,
-    string? metodoPago)
-{
-    var y = year ?? DateTime.UtcNow.Year;
-
-    var q = _db.HechosVentas.AsNoTracking().Where(h => h.Anio == y);
-
-    if (!string.IsNullOrWhiteSpace(categoria))
-        q = q.Where(h => h.Categoria == categoria);
-    if (!string.IsNullOrWhiteSpace(metodoPago))
-        q = q.Where(h => h.MetodoPago == metodoPago);
-
-    if (almacenIds != null && almacenIds.Length > 0)
-        q = q.Where(h => almacenIds.Contains(h.AlmacenId));
-
-    var agregados = await q
-        .GroupBy(h => new { h.Mes, h.AlmacenId })
-        .Select(g => new { g.Key.Mes, g.Key.AlmacenId, Neto = g.Sum(x => x.Neto) })
-        .ToListAsync();
-
-    var meses = Enumerable.Range(1, 12).ToArray();
-    var xCats = meses
-        .Select(m => CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(m))
-        .ToList();
-
-    var yIds = (almacenIds != null && almacenIds.Length > 0)
-        ? almacenIds.Distinct().OrderBy(x => x).ToList()
-        : agregados.Select(a => a.AlmacenId).Distinct().OrderBy(x => x).ToList();
-
-    var yCats = yIds.Select(id => $"Almacén {id}").ToList();
-
-    var data = new List<object>();
-    for (int yIndex = 0; yIndex < yIds.Count; yIndex++)
+    [HttpGet("ventas-heatmap")]
+    public async Task<ActionResult<object>> VentasHeatmap(
+        int? year,
+        [FromQuery] int[]? almacenIds,
+        string? categoria,
+        string? metodoPago)
     {
-        var id = yIds[yIndex];
-        for (int i = 0; i < meses.Length; i++)
+        var y = year ?? DateTime.UtcNow.Year;
+
+        var q = _db.HechosVentas.AsNoTracking().Where(h => h.Anio == y);
+
+        if (!string.IsNullOrWhiteSpace(categoria))
+            q = q.Where(h => h.Categoria == categoria);
+        if (!string.IsNullOrWhiteSpace(metodoPago))
+            q = q.Where(h => h.MetodoPago == metodoPago);
+
+        if (almacenIds != null && almacenIds.Length > 0)
+            q = q.Where(h => almacenIds.Contains(h.AlmacenId));
+
+        var agregados = await q
+            .GroupBy(h => new { h.Mes, h.AlmacenId })
+            .Select(g => new { g.Key.Mes, g.Key.AlmacenId, Neto = g.Sum(x => x.Neto) })
+            .ToListAsync();
+
+        var meses = Enumerable.Range(1, 12).ToArray();
+        var xCats = meses
+            .Select(m => CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(m))
+            .ToList();
+
+        var yIds = (almacenIds != null && almacenIds.Length > 0)
+            ? almacenIds.Distinct().OrderBy(x => x).ToList()
+            : agregados.Select(a => a.AlmacenId).Distinct().OrderBy(x => x).ToList();
+
+        var yCats = yIds.Select(id => $"Almacén {id}").ToList();
+
+        var data = new List<object>();
+        for (int yIndex = 0; yIndex < yIds.Count; yIndex++)
         {
-            int mes = meses[i];
-            var val = agregados
-                .Where(a => a.AlmacenId == id && a.Mes == mes)
-                .Sum(a => a.Neto);
-            data.Add(new object[] { i, yIndex, val });
+            var id = yIds[yIndex];
+            for (int i = 0; i < meses.Length; i++)
+            {
+                int mes = meses[i];
+                var val = agregados
+                    .Where(a => a.AlmacenId == id && a.Mes == mes)
+                    .Sum(a => a.Neto);
+                data.Add(new object[] { i, yIndex, val });
+            }
         }
+
+        var max = data.Count > 0 ? data.Max(p => Convert.ToDecimal(((object[])p)[2])) : 0m;
+
+        return Ok(new
+        {
+            xCategories = xCats,
+            yCategories = yCats,
+            data,
+            max
+        });
     }
-
-    var max = data.Count > 0 ? data.Max(p => Convert.ToDecimal(((object[])p)[2])) : 0m;
-
-    return Ok(new
-    {
-        xCategories = xCats,
-        yCategories = yCats,
-        data,
-        max
-    });
-}
 
     public record ResumenVentasDto(
         decimal Neto, decimal Bruto, decimal Descuento, int Transacciones,
@@ -202,15 +202,14 @@ public async Task<ActionResult<object>> VentasHeatmap(
     public record TopItemDto(string Label, decimal Neto, decimal Unidades);
 
     private IQueryable<HechosVentasModels> Filtrar(
-    int year,
-    int[]? almacenIds,
-    string? categoria,
-    string? metodoPago)
+        int year,
+        int[]? almacenIds,
+        string? categoria,
+        string? metodoPago)
     {
-
         var q = _db.HechosVentas.AsNoTracking();
 
-        q = q.Where(h => h.Anio == year);                                                       
+        q = q.Where(h => h.Anio == year);
 
         if (almacenIds != null && almacenIds.Length > 0)
             q = q.Where(h => almacenIds.Contains(h.AlmacenId));
@@ -224,6 +223,22 @@ public async Task<ActionResult<object>> VentasHeatmap(
         return q;
     }
 
+    private IQueryable<HechosVentasModels> FiltrarPeriodo(
+       int year, int? monthFrom, int? monthTo, int[]? almacenIds,
+       string? categoria = null, string? metodoPago = null)
+    {
+        var q = Filtrar(year, almacenIds, categoria, metodoPago);
+
+        // Variante 1: si tienes columna entera Mes:
+        if (monthFrom.HasValue) q = q.Where(v => v.Mes >= monthFrom.Value);
+        if (monthTo.HasValue) q = q.Where(v => v.Mes <= monthTo.Value);
+
+        // Variante 2 (si usas DateTime Fecha):
+        // if (monthFrom.HasValue) q = q.Where(v => v.Fecha.Month >= monthFrom.Value);
+        // if (monthTo.HasValue)   q = q.Where(v => v.Fecha.Month <= monthTo.Value);
+
+        return q;
+    }
 
     // GET: /api/charts/resumen-ventas?year=2025&almacenIds=19&categoria=Calzado&metodoPago=201
     [HttpGet("resumen-ventas")]
@@ -250,12 +265,12 @@ public async Task<ActionResult<object>> VentasHeatmap(
     [ProducesResponseType(typeof(IEnumerable<TopItemDto>), StatusCodes.Status200OK)]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None, Duration = 0)]
     public async Task<ActionResult<IEnumerable<TopItemDto>>> TopProductos(
-    [FromQuery] int? year,
-    [FromQuery] int limit = 10,
-    [FromQuery] int[]? almacenIds = null,
-    [FromQuery] string? categoria = null,
-    [FromQuery] string? metodoPago = null,
-    [FromQuery] int? month = null)
+        [FromQuery] int? year,
+        [FromQuery] int limit = 10,
+        [FromQuery] int[]? almacenIds = null,
+        [FromQuery] string? categoria = null,
+        [FromQuery] string? metodoPago = null,
+        [FromQuery] int? month = null)
     {
         var y = year ?? DateTime.UtcNow.Year;
 
@@ -291,7 +306,6 @@ public async Task<ActionResult<object>> VentasHeatmap(
         return Ok(data);
     }
 
-
     [HttpGet("top-almacenes")]
     public async Task<ActionResult<IEnumerable<TopItemDto>>> TopAlmacenes(
         int? year, int limit = 10, string? categoria = null, string? metodoPago = null,
@@ -319,7 +333,6 @@ public async Task<ActionResult<object>> VentasHeatmap(
 
         return Ok(data);
     }
-
 
     [HttpGet("ventas-por-metodo-pago")]
     public async Task<ActionResult<IEnumerable<object>>> VentasPorMetodoPago(int? year, [FromQuery] int[]? almacenIds = null, string? categoria = null)
@@ -360,18 +373,18 @@ public async Task<ActionResult<object>> VentasHeatmap(
         return Ok(list);
     }
 
-public record SerieDto(string name, List<decimal> data);
+    public record SerieDto(string name, List<decimal> data);
 
     [HttpGet("top-productos-multi")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None, Duration = 0)] // opcional anti-cache
     public async Task<IActionResult> TopProductosMulti(
-    [FromQuery] int? year,
-    [FromQuery] int limit = 10,
-    [FromQuery] int[] almacenIds = null!,
-    [FromQuery] int? month = null,
-    [FromQuery] string? categoria = null,
-    [FromQuery] string? metodoPago = null)
+        [FromQuery] int? year,
+        [FromQuery] int limit = 10,
+        [FromQuery] int[] almacenIds = null!,
+        [FromQuery] int? month = null,
+        [FromQuery] string? categoria = null,
+        [FromQuery] string? metodoPago = null)
     {
         if (almacenIds == null || almacenIds.Length < 2)
             return BadRequest("Se requieren 2 o más almacenes.");
@@ -412,7 +425,6 @@ public record SerieDto(string name, List<decimal> data);
 
         if (topGlobal.Count == 0)
             return Ok(new { categories = Array.Empty<string>(), series = Array.Empty<object>() });
-
 
         var prodIds = topGlobal.Select(t => t.ProductoId).ToArray();
 
@@ -475,7 +487,7 @@ public record SerieDto(string name, List<decimal> data);
         {
             var s = (raw ?? "").Trim();
             if (s.Length == 0) return "(Sin género)";
-            var dash = s.IndexOf('-'); 
+            var dash = s.IndexOf('-');
             if (dash >= 0) s = s[..dash].Trim();
 
             var up = s.ToUpperInvariant();
@@ -496,7 +508,7 @@ public record SerieDto(string name, List<decimal> data);
                 Neto = r.Neto,
                 Unidades = r.Cantidad
             })
-            .GroupBy(x => x.Genero) 
+            .GroupBy(x => x.Genero)
             .Select(g => new VentasPorGeneroDto(
                 Genero: g.Key,
                 Neto: g.Sum(z => z.Neto),
@@ -582,7 +594,188 @@ public record SerieDto(string name, List<decimal> data);
         return Ok(porAlmacen);
     }
 
+    // =========================
+    // NUEVO: DTOs de Vendedores
+    // =========================
+    private record SellerCompareDto(
+        int Id, string Nombre,
+        decimal NetoA, decimal NetoB, decimal DeltaNeto, decimal PctNeto,
+        decimal UndA, decimal UndB, decimal DeltaUnd, decimal PctUnd,
+        int TicketsA, int TicketsB);
+
+    private record SellerTrendPoint(int Mes, decimal Neto, decimal Unidades);
+    private record SellerTrendDto(int Id, string Nombre, List<SellerTrendPoint> Serie);
+
+    // ===========================================
+    // NUEVO: Top vendedores — Periodo A vs B
+    // GET /api/charts/top-vendedores-compare
+    // ===========================================
+    [HttpGet("top-vendedores-compare")]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TopVendedoresCompare(
+    int yearA, int? monthFromA, int? monthToA,
+    int yearB, int? monthFromB, int? monthToB,
+    [FromQuery] int[]? almacenIds,
+    string? categoria, string? metodoPago,
+    string metric = "neto", int topN = 10, bool excluirDevoluciones = true)
+    {
+        var a = FiltrarPeriodo(yearA, monthFromA, monthToA, almacenIds, categoria, metodoPago);
+        var b = FiltrarPeriodo(yearB, monthFromB, monthToB, almacenIds, categoria, metodoPago);
+
+        if (excluirDevoluciones) { a = a.Where(x => x.Neto > 0); b = b.Where(x => x.Neto > 0); }
+
+        // 👇 Filtra nulos y fuerza int (evita IQueryable<int?>)
+        a = a.Where(v => v.EmpleadoId != null);
+        b = b.Where(v => v.EmpleadoId != null);
+
+        var aggA = a.GroupBy(v => v.EmpleadoId!.Value)
+            .Select(g => new {
+                Id = g.Key,                        // int
+                Neto = g.Sum(x => x.Neto),
+                Und = g.Sum(x => x.Cantidad),
+                Tickets = g.Select(x => x.Numero).Distinct().Count()
+            });
+
+        var aggB = b.GroupBy(v => v.EmpleadoId!.Value)
+            .Select(g => new {
+                Id = g.Key,                        // int
+                Neto = g.Sum(x => x.Neto),
+                Und = g.Sum(x => x.Cantidad),
+                Tickets = g.Select(x => x.Numero).Distinct().Count()
+            });
+
+        IQueryable<int> topIdsQ = (metric.ToLower() == "unidades")
+            ? aggA.OrderByDescending(x => x.Und).Take(topN).Select(x => x.Id)
+            : aggA.OrderByDescending(x => x.Neto).Take(topN).Select(x => x.Id);
+
+        // 👉 topIds es List<int> (no int?) → ya no habrá CS0266/CS1503
+        var topIds = await topIdsQ.ToListAsync();
+
+        var aDict = await aggA.Where(x => topIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id);
+        var bDict = await aggB.Where(x => topIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id);
+
+        // Mantener orden por Top (A)
+        topIds = (metric.ToLower() == "unidades")
+            ? topIds.OrderByDescending(id => aDict.TryGetValue(id, out var av) ? av.Und : 0).ToList()
+            : topIds.OrderByDescending(id => aDict.TryGetValue(id, out var av) ? av.Neto : 0).ToList();
+
+        var data = topIds.Select(id =>
+        {
+            var av = aDict.GetValueOrDefault(id);
+            var bv = bDict.GetValueOrDefault(id);
+
+            decimal netoA = av?.Neto ?? 0m, netoB = bv?.Neto ?? 0m;
+            decimal undA = av?.Und ?? 0m, undB = bv?.Und ?? 0m;
+            int ticketsA = av?.Tickets ?? 0, ticketsB = bv?.Tickets ?? 0;
+
+            var deltaN = netoB - netoA;
+            var pctN = netoA == 0 ? (netoB > 0 ? 100m : 0m) : (deltaN / netoA * 100m);
+            var deltaU = undB - undA;
+            var pctU = undA == 0 ? (undB > 0 ? 100m : 0m) : (deltaU / undA * 100m);
+
+            var nombre = $"Empleado {id}";
+            return new
+            {
+                Id = id,
+                Nombre = nombre,
+                NetoA = Math.Round(netoA, 2),
+                NetoB = Math.Round(netoB, 2),
+                DeltaNeto = Math.Round(deltaN, 2),
+                PctNeto = Math.Round(pctN, 2),
+                UndA = Math.Round(undA, 2),
+                UndB = Math.Round(undB, 2),
+                DeltaUnd = Math.Round(deltaU, 2),
+                PctUnd = Math.Round(pctU, 2),
+                TicketsA = ticketsA,
+                TicketsB = ticketsB
+            };
+        }).ToList();
+
+        return Ok(data);
+    }
 
 
+    // ===========================================
+    // NUEVO: Tendencia mensual de vendedores Top
+    // GET /api/charts/vendedores-trend
+    // ===========================================
+    [HttpGet("vendedores-trend")]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> VendedoresTrend(
+    int year, int? monthFrom, int? monthTo,
+    [FromQuery] int[]? almacenIds,
+    string? categoria, string? metodoPago,
+    string metric = "neto", int topN = 5, bool excluirDevoluciones = true)
+    {
+        var q = FiltrarPeriodo(year, monthFrom, monthTo, almacenIds, categoria, metodoPago);
+        if (excluirDevoluciones) q = q.Where(x => x.Neto > 0);
+
+        // 👇 evita nullables
+        q = q.Where(v => v.EmpleadoId != null);
+
+        var aggTotal = q.GroupBy(v => v.EmpleadoId!.Value)
+            .Select(g => new { Id = g.Key, Neto = g.Sum(x => x.Neto), Und = g.Sum(x => x.Cantidad) });
+
+        var topIds = (metric.ToLower() == "unidades")
+            ? await aggTotal.OrderByDescending(x => x.Und).Take(topN).Select(x => x.Id).ToListAsync()
+            : await aggTotal.OrderByDescending(x => x.Neto).Take(topN).Select(x => x.Id).ToListAsync();
+
+        // Agregado mensual con columna Mes
+        var mensual = await q.Where(v => topIds.Contains(v.EmpleadoId!.Value))
+            .GroupBy(v => new { Id = v.EmpleadoId!.Value, v.Mes })
+            .Select(g => new { g.Key.Id, g.Key.Mes, Neto = g.Sum(x => x.Neto), Und = g.Sum(x => x.Cantidad) })
+            .ToListAsync();
+
+        int from = monthFrom ?? 1;
+        int to = monthTo ?? 12;
+
+        var series = topIds.Select(id => new {
+            Id = id,
+            Nombre = $"Empleado {id}",
+            Serie = Enumerable.Range(from, to - from + 1)
+                .Select(m => {
+                    var row = mensual.FirstOrDefault(x => x.Id == id && x.Mes == m);
+                    return new { Mes = m, Neto = row?.Neto ?? 0m, Unidades = row?.Und ?? 0m };
+                })
+                .ToList()
+        });
+
+        return Ok(series);
+    }
+
+    public record EmpleadoAlmacenDto(int AlmacenId, string Almacen, decimal Neto, decimal Unidades, int Tickets);
+
+    [HttpGet("empleado-por-almacen")]
+    [ProducesResponseType(typeof(IEnumerable<EmpleadoAlmacenDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> EmpleadoPorAlmacen(
+        int year, int? monthFrom, int? monthTo,
+        [FromQuery] int[]? almacenIds,
+        int empleadoId,
+        string? categoria, string? metodoPago,
+        bool excluirDevoluciones = true)
+    {
+        var q = FiltrarPeriodo(year, monthFrom, monthTo, almacenIds, categoria, metodoPago)
+            .Where(x => x.EmpleadoId == empleadoId);
+        if (excluirDevoluciones) q = q.Where(x => x.Neto > 0);
+
+        var agg = await q
+            .GroupBy(x => x.AlmacenId)
+            .Select(g => new { AlmacenId = g.Key, Neto = g.Sum(x => x.Neto), Und = g.Sum(x => x.Cantidad), Tickets = g.Select(x => x.Numero).Distinct().Count() })
+            .ToListAsync();
+
+        var nombres = await _db.Almacenes.AsNoTracking()
+            .Where(a => agg.Select(x => x.AlmacenId).Contains(a.Id))
+            .ToDictionaryAsync(a => a.Id, a => a.Nombre);
+
+        var list = agg
+            .Select(x => new EmpleadoAlmacenDto(
+                x.AlmacenId,
+                (nombres.TryGetValue(x.AlmacenId, out var n) && !string.IsNullOrWhiteSpace(n)) ? n : $"Almacén {x.AlmacenId}",
+                x.Neto, x.Und, x.Tickets))
+            .OrderByDescending(x => x.Neto)
+            .ToList();
+
+        return Ok(list);
+    }
 
 }
