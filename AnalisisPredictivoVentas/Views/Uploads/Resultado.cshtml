@@ -3,10 +3,25 @@
 
 @{
     ViewData["Title"] = "Resultado de la carga";
-    string Mon(decimal v) => v.ToString("C2"); // formato moneda según cultura
+    string Mon(decimal v) => v.ToString("C2");
 }
 
 <h2 class="mb-3">@ViewData["Title"]</h2>
+
+@if (TempData["MailOk"] is string ok)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i> @ok
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["MailErr"] is string err)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-octagon me-1"></i> @err
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
 <div class="import-result">
     <div class="card shadow-sm">
@@ -78,7 +93,32 @@
                 <div class="col-6 col-md-3">
                     <div class="h5 mb-0">@Mon(Model.TotalPagos)</div>
                     <div class="text-muted small">Total pagos</div>
+                </div>
             </div>
+
+            @functions {
+                private static readonly Dictionary<string, string> _mapMetodos = new()
+                        {
+                        { "202", "EFECTIVO" },
+                        { "201", "PAGO DE UNA" },
+                        { "2",   "DEBITO PICHINCHA" },
+                        { "7",   "DEBITO GUAYAQUIL" },
+                        { "8",   "TARJETA CREDITO VISA" },
+                        { "9",   "TARJETA CREDITO MASTERCARD" }
+                        };
+
+                public static string LabelMetodo(string k)
+                {
+                    if (string.IsNullOrWhiteSpace(k))
+                        return "DESCONOCIDO";
+
+                    k = k.Trim();
+
+                    return _mapMetodos.TryGetValue(k, out var nombre)
+                    ? nombre
+                    : "TARJETA CREDITO";
+                }
+            }
 
             @if (Model.PagosPorMetodo?.Count > 0)
             {
@@ -93,7 +133,7 @@
                                 @foreach (var kv in Model.PagosPorMetodo.OrderBy(k => k.Key))
                                 {
                                     <tr>
-                                        <td>@kv.Key</td>
+                                        <td>@LabelMetodo(kv.Key)</td>
                                         <td class="text-end">@Mon(kv.Value)</td>
                                     </tr>
                                 }
@@ -139,30 +179,27 @@
         </div>
     </div>
 </div>
+
 @section Styles {
     <style>
-        /* Solo afecta a esta vista */
         .import-result .kpi-sub,
         .import-result small,
         .import-result .text-muted,
         .import-result .form-text {
             color: #fff !important;
             font-weight: 700;
-            opacity: .95; /* un pelín de suavidad */
+            opacity: .95; 
         }
 
-        /* Si tienes contenedores de métrica con clases propias */
         .import-result .kpi-value {
             color: #fff;
             font-weight: 800;
         }
 
-        /* Por si alguna badge hereda mal el color del tema */
         .import-result .badge {
             color: #fff !important;
         }
 
-        /* Subtítulos en la cabecera (periodo, sucursales, etc.) */
         .import-result .title-sub {
             color: #fff !important;
             font-weight: 700;

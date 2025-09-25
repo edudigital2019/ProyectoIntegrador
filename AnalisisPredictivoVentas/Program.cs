@@ -2,6 +2,7 @@
 using AnalisisPredictivoVentas.Import;
 using AnalisisPredictivoVentas.Security;
 using AnalisisPredictivoVentas.Services;
+using AnalisisPredictivoVentas.Services.Email;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,17 +17,17 @@ builder.Services.AddDbContext<AppDbContext>(o =>
      .EnableDetailedErrors()
      .EnableSensitiveDataLogging());
 
-// Auth por cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opt =>
     {
         opt.LoginPath = "/Account/Login";
         opt.AccessDeniedPath = "/Account/Denied";
         opt.SlidingExpiration = true;
-        // opt.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
 
-// AUTORIZACIÓN: solo políticas (SIN FallbackPolicy)
+builder.Services.Configure<MailOptions>(builder.Configuration.GetSection("Mail"));
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(Permisos.AdministrarUsuarios, p => p.RequireClaim("perm", Permisos.AdministrarUsuarios));
@@ -36,7 +37,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(Permisos.VerVendedoresCompare, p => p.RequireClaim("perm", Permisos.VerVendedoresCompare));
 });
 
-// Servicios dominio
 builder.Services.AddScoped<IImportService, ImportService>();
 builder.Services.AddScoped<IReabastecimientoService, ReabastecimientoService>();
 
@@ -57,7 +57,6 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Migrar + seeding admin
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

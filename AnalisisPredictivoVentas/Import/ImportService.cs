@@ -52,35 +52,47 @@ namespace AnalisisPredictivoVentas.Import
             int lineas = 0;
             DateTime? minFecha = null, maxFecha = null;
             var sucursales = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
             var tocadas = new HashSet<int>();
 
-            await using var tx = await _db.Database.BeginTransactionAsync();
-            try
+            // ===== Procesamiento por venta (no se detiene ante errores)
+            int idxLinea = 0;
+            foreach (var v in dto.Ventas)
             {
-                foreach (var v in dto.Ventas)
+                idxLinea++;
+
+                try
                 {
-                    // Período
+                    // ===== Almacén (requerido)
+                    if (v.Almacen is null || string.IsNullOrWhiteSpace(v.Almacen.Codigo))
+                    {
+                        result.Errores.Add($"Línea {idxLinea} (Num={(v.Numero ?? "(null)")}, Suc=?): Almacén requerido.");
+                        continue; // sin almacén no se puede continuar
+                    }
+
+                    var almacen = await UpsertAlmacenAsync(v.Almacen, result);
+                    var sucursalKey = string.IsNullOrWhiteSpace(almacen.Codigo) ? almacen.Id.ToString() : almacen.Codigo!;
+                    sucursales.Add(sucursalKey);
+
+                    // ===== Numero (si falta → generar)
+                    if (string.IsNullOrWhiteSpace(v.Numero))
+                    {
+                        v.Numero = GenerarNumeroFallback(sucursalKey, idxLinea);
+                        result.Errores.Add($"Línea {idxLinea} (Suc={sucursalKey}): Numero vacío → asignado automáticamente '{v.Numero}'.");
+                    }
+
+                    // Período (min/max)
                     if (v.Fecha != default)
                     {
                         minFecha = !minFecha.HasValue || v.Fecha < minFecha ? v.Fecha : minFecha;
                         maxFecha = !maxFecha.HasValue || v.Fecha > maxFecha ? v.Fecha : maxFecha;
                     }
 
-                    var almDto = v.Almacen;
-                    if (almDto is null || string.IsNullOrWhiteSpace(almDto.Codigo))
-                    {
-                        result.Errores.Add($"Venta {(v.Numero ?? "(sin número)")} sin almacén.");
-                        continue;
-                    }
-                    var almacen = await UpsertAlmacenAsync(almDto, result);
-                    sucursales.Add(string.IsNullOrWhiteSpace(almacen.Codigo) ? almacen.Id.ToString() : almacen.Codigo);
-
                     // ===== Cliente (opcional)
                     Cliente? cliente = null;
                     if (v.Cliente is not null)
                         cliente = await UpsertClienteAsync(v.Cliente, result);
 
+                    // ===== Empleado (opcional)
                     Empleado? empleado = null;
                     if (v.Empleado is not null)
                     {
@@ -106,14 +118,11 @@ namespace AnalisisPredictivoVentas.Import
                         }
                     }
 
-                    VentaCab? cab = null;
-                    if (!string.IsNullOrWhiteSpace(v.Numero))
-                    {
-                        cab = await _db.VentasCab
-                            .Include(c => c.Detalles)
-                            .Include(c => c.Pagos)
-                            .FirstOrDefaultAsync(c => c.Numero == v.Numero && c.AlmacenId == almacen.Id);
-                    }
+                    // ===== Cabecera (upsert por Numero + AlmacenId)
+                    var cab = await _db.VentasCab
+                        .Include(c => c.Detalles)
+                        .Include(c => c.Pagos)
+                        .FirstOrDefaultAsync(c => c.Numero == v.Numero && c.AlmacenId == almacen.Id);
 
                     var nueva = false;
                     if (cab is null)
@@ -121,7 +130,7 @@ namespace AnalisisPredictivoVentas.Import
                         cab = new VentaCab
                         {
                             Fecha = v.Fecha == default ? DateTime.UtcNow : v.Fecha,
-                            Numero = v.Numero,
+                            Numero = v.Numero!, // ya garantizado
                             ClienteId = cliente?.Id,
                             EmpleadoId = empleado?.Id,
                             AlmacenId = almacen.Id,
@@ -141,7 +150,12 @@ namespace AnalisisPredictivoVentas.Import
                         _db.VentasPago.RemoveRange(cab.Pagos);
                     }
 
+                    // ===== Detalles (requeridos)
+                    if (v.Detalles is null || v.Detalles.Count == 0)
+                        throw new InvalidOperationException("La venta no contiene detalles.");
+
                     decimal totalVenta = 0m;
+
                     foreach (var d in v.Detalles)
                     {
                         var prod = await UpsertProductoAsync(d.Producto, result);
@@ -176,6 +190,7 @@ namespace AnalisisPredictivoVentas.Import
                         lineas++;
                     }
 
+                    // ===== Pagos (opcionales)
                     foreach (var p in v.Pagos)
                     {
                         var mp = await UpsertMetodoPagoAsync(p.Metodo, result);
@@ -189,6 +204,7 @@ namespace AnalisisPredictivoVentas.Import
 
                     cab.Total = totalVenta;
 
+                    // Guarda ESTA venta
                     await _db.SaveChangesAsync();
 
                     if (nueva) result.VentasInsertadas++;
@@ -196,16 +212,22 @@ namespace AnalisisPredictivoVentas.Import
 
                     tocadas.Add(cab.Id);
                 }
-
-                await tx.CommitAsync();
+                catch (DbUpdateException ex)
+                {
+                    DetachAll();
+                    var causa = TraducirDbError(ex);
+                    result.Errores.Add($"Línea {idxLinea} (Num={v.Numero ?? "(null)"}, Suc={v.Almacen?.Codigo ?? "?"}): {causa}");
+                    continue; // seguir con la siguiente
+                }
+                catch (Exception ex)
+                {
+                    DetachAll();
+                    result.Errores.Add($"Línea {idxLinea} (Num={v.Numero ?? "(null)"}, Suc={v.Almacen?.Codigo ?? "?"}): {ex.Message}");
+                    continue; // seguir con la siguiente
+                }
             }
-            catch (Exception ex)
-            {
-                await tx.RollbackAsync();
-                result.Errores.Add($"Error de importación: {ex.Message}");
-                return result;
-            }
 
+            // ===== Materializar SOLO las ventas correctas
             try
             {
                 await MaterializarHechosAsync(tocadas);
@@ -228,6 +250,39 @@ namespace AnalisisPredictivoVentas.Import
 
             return result;
         }
+
+        // ---------- Helpers de error/cleanup ----------
+
+        private static string TraducirDbError(DbUpdateException ex)
+        {
+            if (ex.InnerException is SqlException sqlEx)
+            {
+                return sqlEx.Number switch
+                {
+                    515 => "Valor NULL en columna NOT NULL.",             // Cannot insert the value NULL...
+                    2627 => "Clave duplicada (violación de UNIQUE/PK).",   // Violation of UNIQUE KEY constraint
+                    2601 => "Índice único duplicado.",
+                    _ => $"SQL Error {sqlEx.Number}: {sqlEx.Message}"
+                };
+            }
+            return ex.Message;
+        }
+
+        private void DetachAll()
+        {
+            var entries = _db.ChangeTracker.Entries().ToList();
+            foreach (var e in entries)
+                if (e.State != EntityState.Detached)
+                    e.State = EntityState.Detached;
+        }
+
+        private static string GenerarNumeroFallback(string sucursal, int index)
+        {
+            // Único y legible: Sucursal-YYYYMMDDHHMMSSfff-Idx
+            return $"{sucursal}-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{index}";
+        }
+
+        // ---------- Parsers y resto de helpers (sin cambios de lógica) ----------
 
         private static ArchivoVentasDto? ParseJson(string json)
         {
@@ -621,13 +676,14 @@ namespace AnalisisPredictivoVentas.Import
         }
     }
 
+    // ===== CSV DTOs/Maps =====
 
     public class VentaCsvRow
     {
         public string Sucursal { get; set; } = "";
         public string NoFacturaVenta { get; set; } = "";
         public string Vendedor { get; set; } = "";
-        public string Fecha { get; set; } = ""; 
+        public string Fecha { get; set; } = "";
         public string Cliente { get; set; } = "";
         public string Producto { get; set; } = "";
         public string Categoria { get; set; } = "";
@@ -674,5 +730,4 @@ namespace AnalisisPredictivoVentas.Import
             Map(m => m.Talla).Name("TALLA");
         }
     }
-
 }

@@ -11,6 +11,22 @@
     </a>
 </div>
 
+<!-- Mensajes de feedback por envío de correo -->
+@if (TempData["MailOk"] is string ok)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @ok
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["MailErr"] is string err)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @err
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead class="table-light">
@@ -19,7 +35,7 @@
                 <th>Nombres</th>
                 <th>Rol</th>
                 <th class="text-center">Estado</th>
-                <th style="width:160px;"></th>
+                <th style="width:220px;" class="text-end">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -35,12 +51,10 @@
                         }
                         else if (u.Rol == Roles.ResponsableCarga)
                         {
-
                             <span class="badge text-bg-info">ResponsableCarga</span>
                         }
                         else
                         {
-
                             <span class="badge text-bg-secondary">Empleado</span>
                         }
                     </td>
@@ -51,20 +65,31 @@
                         }
                         else
                         {
-
                             <span class="badge text-bg-secondary">Inactivo</span>
                         }
                     </td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@u.Id">
+                        <!-- Editar -->
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@u.Id" title="Editar">
                             <i class="bi bi-pencil-square"></i>
                         </a>
+
+                        <!-- Activar/Desactivar -->
                         <form asp-action="ToggleActivo" asp-route-id="@u.Id" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-sm @(u.Activo ? "btn-outline-warning" : "btn-outline-success")"
                                     title="@(u.Activo ? "Desactivar" : "Activar")"
                                     onclick="return confirm('¿Confirmas cambiar el estado de @u.Email?');">
                                 <i class="bi @(u.Activo ? "bi-person-dash" : "bi-person-check")"></i>
+                            </button>
+                        </form>
+
+                        <!-- Enviar correo de prueba -->
+                        <form asp-controller="Notify" asp-action="Test" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="to" value="@u.Email" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Enviar correo de prueba">
+                                <i class="bi bi-envelope-paper"></i>
                             </button>
                         </form>
                     </td>
