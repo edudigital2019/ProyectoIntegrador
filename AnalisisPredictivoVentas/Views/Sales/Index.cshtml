@@ -1,6 +1,34 @@
-﻿@{
+﻿@using System.Text.Json
+
+@{
     ViewData["Title"] = "Tendencias de Ventas";
     var year = DateTime.Now.Year;
+}
+
+@functions {
+    private static readonly Dictionary<string, string> _mapMetodos = new()
+    {
+        { "202", "EFECTIVO" },
+        { "201", "PAGO DE UNA" },
+        { "2",   "DEBITO PICHINCHA" },
+        { "7",   "DEBITO GUAYAQUIL" },
+        { "8",   "TARJETA CREDITO VISA" },
+        { "9",   "TARJETA CREDITO MASTERCARD" }
+    };
+
+    public static string LabelMetodo(string k)
+    {
+        if (string.IsNullOrWhiteSpace(k))
+            return "DESCONOCIDO";
+
+        k = k.Trim();
+        return _mapMetodos.TryGetValue(k, out var nombre)
+            ? nombre
+            : "TARJETA CREDITO";
+    }
+
+    public static string MetodoMapJson()
+        => JsonSerializer.Serialize(_mapMetodos);
 }
 
 <h2>@ViewData["Title"]</h2>
@@ -32,11 +60,6 @@
     </div>
 
     <div class="col-lg-3">
-        <label class="form-label">Categoría (opcional)</label>
-        <input id="categoria" class="form-control" placeholder="Ej: Calzado" />
-    </div>
-
-    <div class="col-lg-3">
         <label class="form-label">Método de pago</label>
         <select id="metodoPago" class="form-select">
             <option value="">(todos)</option>
@@ -61,5 +84,55 @@
 }
 
 @section Scripts {
+    <script>
+        // Exponer el mapa y la función al cliente
+        window.METODO_MAP = @Html.Raw(MetodoMapJson());
+        window.labelMetodo = function (k) {
+            if (!k) return 'DESCONOCIDO';
+            k = ('' + k).trim();
+            return (window.METODO_MAP && window.METODO_MAP[k]) ? window.METODO_MAP[k] : 'TARJETA CREDITO';
+        };
+
+        // Carga/recarga del combo de métodos de pago con etiquetas
+        async function cargarMetodosPago() {
+            const sel = document.getElementById('metodoPago');
+            if (!sel) return;
+
+            const year = document.getElementById('year')?.value ?? '';
+            const categoria = document.getElementById('categoria')?.value ?? '';
+
+            const url = `/api/charts/metodos-pago?year=${encodeURIComponent(year)}&categoria=${encodeURIComponent(categoria)}`;
+
+            try {
+                const r = await fetch(url);
+                const codigos = await r.json(); // lista de códigos (strings)
+                // limpiar excepto "(todos)"
+                sel.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
+
+                (codigos || []).forEach(code => {
+                    const opt = document.createElement('option');
+                    opt.value = code;                   // sigue enviando el código al backend
+                    opt.textContent = window.labelMetodo(code); // muestra nombre amigable
+                    sel.appendChild(opt);
+                });
+            } catch (_) {
+                // silencioso
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar combo al inicio
+            cargarMetodosPago();
+
+            // Si cambian filtros que afectan la lista, recargar opciones
+            document.getElementById('year')?.addEventListener('change', cargarMetodosPago);
+            document.getElementById('categoria')?.addEventListener('input', () => {
+                // pequeña espera para no recargar en cada tecla
+                clearTimeout(window.__mpTimer);
+                window.__mpTimer = setTimeout(cargarMetodosPago, 400);
+            });
+        });
+    </script>
+
     <script src="~/js/sales-charts.js" asp-append-version="true" defer></script>
 }

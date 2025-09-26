@@ -1,6 +1,29 @@
-﻿@{
+﻿@using System.Text.Json
+
+@{
     ViewData["Title"] = "Análisis general de Ventas";
     var year = DateTime.Now.Year;
+}
+
+@functions {
+    private static readonly Dictionary<string, string> _mapMetodos = new()
+    {
+        { "202", "EFECTIVO" },
+        { "201", "PAGO DE UNA" },
+        { "2",   "DEBITO PICHINCHA" },
+        { "7",   "DEBITO GUAYAQUIL" },
+        { "8",   "TARJETA CREDITO VISA" },
+        { "9",   "TARJETA CREDITO MASTERCARD" }
+    };
+
+    public static string LabelMetodo(string k)
+    {
+        if (string.IsNullOrWhiteSpace(k)) return "DESCONOCIDO";
+        k = k.Trim();
+        return _mapMetodos.TryGetValue(k, out var nombre) ? nombre : "TARJETA CREDITO";
+    }
+
+    public static string MetodoMapJson() => JsonSerializer.Serialize(_mapMetodos);
 }
 
 <h2>@ViewData["Title"]</h2>
@@ -31,11 +54,6 @@
     </div>
 
     <div class="col-lg-3">
-        <label class="form-label">Categoría (opcional)</label>
-        <input id="categoria" class="form-control" placeholder="Ej: Calzado" />
-    </div>
-
-    <div class="col-lg-3">
         <label class="form-label">Método de pago</label>
         <select id="metodoPago" class="form-select">
             <option value="">(todos)</option>
@@ -49,10 +67,10 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Total neto</div><div id="kpiNeto" class="fs-4 fw-bold">—</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ticket promedio</div><div id="kpiTicket" class="fs-4 fw-bold">—</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Unidades</div><div id="kpiUnd" class="fs-4 fw-bold">—</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Var. YoY</div><div id="kpiYoY" class="fs-4 fw-bold">—</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-white">Total neto</div><div id="kpiNeto" class="fs-4 fw-bold">—</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-white">Ticket promedio</div><div id="kpiTicket" class="fs-4 fw-bold">—</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-white">Unidades</div><div id="kpiUnd" class="fs-4 fw-bold">—</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-white">Var. YoY</div><div id="kpiYoY" class="fs-4 fw-bold">—</div></div></div>
 </div>
 
 <div class="row g-3">
@@ -63,6 +81,73 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/sales.css" />
 }
+
 @section Scripts {
+    <script>
+        window.METODO_MAP = @Html.Raw(MetodoMapJson());
+        window.labelMetodo = function (k) {
+            if (!k) return 'DESCONOCIDO';
+            k = ('' + k).trim();
+            return (window.METODO_MAP && window.METODO_MAP[k]) ? window.METODO_MAP[k] : 'TARJETA CREDITO';
+        };
+
+        async function cargarMetodosPago() {
+            const sel = document.getElementById('metodoPago');
+            if (!sel) return;
+
+            const year = document.getElementById('year')?.value ?? '';
+            const categoria = document.getElementById('categoria')?.value ?? '';
+            const chk = document.querySelectorAll('.chk-alm:checked');
+            let almacenId = '';
+            if (chk && chk.length === 1) almacenId = chk[0].value;
+
+            const url = `/api/charts/metodos-pago?year=${encodeURIComponent(year)}&categoria=${encodeURIComponent(categoria)}&almacenId=${encodeURIComponent(almacenId)}`;
+
+            try {
+                const r = await fetch(url, { cache: 'no-store' });
+                if (!r.ok) return;
+                const codigos = await r.json();
+                sel.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
+                (codigos || []).forEach(code => {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = window.labelMetodo(code);
+                    sel.appendChild(opt);
+                });
+            } catch {}
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const sel = document.getElementById('metodoPago');
+            if (!sel) return;
+            const mo = new MutationObserver(() => {
+                sel.querySelectorAll('option').forEach(opt => {
+                    if (opt.value && opt.value !== "" && opt.textContent === opt.value) {
+                        opt.textContent = window.labelMetodo(opt.value);
+                    }
+                });
+            });
+            mo.observe(sel, { childList: true, subtree: false });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarMetodosPago();
+
+            const $year = document.getElementById('year');
+            const $cat = document.getElementById('categoria');
+
+            const debounce = (fn, d = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; };
+
+            $year?.addEventListener('change', debounce(cargarMetodosPago, 200));
+            $cat?.addEventListener('input', debounce(cargarMetodosPago, 300));
+
+            document.addEventListener('change', (e) => {
+                if (e.target && e.target.classList && e.target.classList.contains('chk-alm')) {
+                    cargarMetodosPago();
+                }
+            });
+        });
+    </script>
+
     <script src="~/js/sales-general.js" asp-append-version="true" defer></script>
 }

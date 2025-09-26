@@ -4,6 +4,7 @@ wwwroot\css\layout-modern.css
 wwwroot\css\site.css
 wwwroot\css\uploads.css
 wwwroot\favicon.ico
+wwwroot\js\chat-bot.js
 wwwroot\js\genero.js
 wwwroot\js\highcharts-theme.js
 wwwroot\js\sales-charts.js
@@ -69,4 +70,3 @@ wwwroot\lib\jquery\dist\jquery.js
 wwwroot\lib\jquery\dist\jquery.min.js
 wwwroot\lib\jquery\dist\jquery.min.map
 wwwroot\lib\jquery\LICENSE.txt
-wwwroot\js\chat-bot.js

@@ -51,6 +51,21 @@
             $almSummary.textContent = txt;
         }
 
+        // ===== Mapeo de métodos en cliente (usa lo que expone la vista) =====
+        function labelMetodoLocal(code) {
+            const k = (code == null) ? '' : String(code).trim();
+            try {
+                if (typeof window !== 'undefined' && typeof window.labelMetodo === 'function') {
+                    return window.labelMetodo(k);
+                }
+                const map = (typeof window !== 'undefined' && window.METODO_MAP) ? window.METODO_MAP : {};
+                if (map && k && map[k]) return map[k];
+                return k || 'DESCONOCIDO';
+            } catch {
+                return k || 'DESCONOCIDO';
+            }
+        }
+
         // ---- cargar listas ----
         async function cargarAlmacenes({ preserve = true } = {}) {
             if (!$almChecks) return;
@@ -108,10 +123,16 @@
 
             const res = await fetch(url, { cache: 'no-store' });
             if (!res.ok) return;
-            const data = await res.json(); // ["Efectivo", ...]
+            const data = await res.json(); // Lista de CÓDIGOS o nombres
+
             $mp.innerHTML = `<option value="">(todos)</option>` +
-                data.map(x => `<option value="${x}">${x}</option>`).join('');
-            if (preserve && data.some(x => String(x) === prev)) $mp.value = prev;
+                (data || []).map(code => {
+                    const value = String(code);
+                    const label = labelMetodoLocal(value);
+                    return `<option value="${value}">${label}</option>`;
+                }).join('');
+
+            if (preserve && (data || []).some(x => String(x) === prev)) $mp.value = prev;
         }
 
         // Buscar dentro del dropdown
@@ -235,17 +256,53 @@
                 year: $year?.value,
                 almacenIds: getSelectedAlmacenes(),
                 categoria: $cat?.value,
+                metodoPago: $mp?.value,   // ya lo envías al backend
                 _t: Date.now()
             });
             const res = await fetch(url, { cache: 'no-store' });
             if (!res.ok) return;
-            const data = await res.json(); // [{name, y}]
+            let data = await res.json(); // esperado: [{name, y}] (name puede venir como código)
+
+            // --- Filtro de respaldo en cliente (por si el backend ignora 'metodoPago') ---
+            const selected = String($mp?.value || '').trim();
+            if (selected) {
+                data = (data || []).filter(p => {
+                    const code = (p && typeof p === 'object')
+                        ? (p.name ?? p.Name ?? p.code ?? p.Code)
+                        : (Array.isArray(p) ? p[0] : p);
+                    return String(code) === selected;
+                });
+            }
+
+            // Normalizar y mapear etiqueta
+            if (Array.isArray(data)) {
+                data = data.map(p => {
+                    const code = (p && typeof p === 'object')
+                        ? (p.name ?? p.Name ?? p.code ?? p.Code)
+                        : (Array.isArray(p) ? p[0] : p);
+                    const val = (p && typeof p === 'object')
+                        ? (p.y ?? p.Y ?? 0)
+                        : (Array.isArray(p) ? p[1] : 0);
+                    return { name: labelMetodoLocal(code), y: Number(val) || 0 };
+                });
+            } else {
+                data = [];
+            }
 
             Highcharts.chart(container, {
                 chart: { type: 'pie' },
                 title: { text: 'Métodos de pago' },
                 plotOptions: {
-                    pie: { innerSize: '60%', dataLabels: { enabled: true, format: '{point.name}: {point.percentage:.1f}%' } }
+                    pie: {
+                        innerSize: '60%',
+                        dataLabels: {
+                            enabled: true,
+                            formatter: function () {
+                                const n = this.point.name; // ya mapeado
+                                return `${n}: ${this.percentage.toFixed(1)}%`;
+                            }
+                        }
+                    }
                 },
                 tooltip: {
                     pointFormatter() {
@@ -255,6 +312,7 @@
                 series: [{ name: 'Ventas', data }]
             });
         }
+
 
         async function chartTopAlmacen() {
             const container = document.getElementById('chartTopAlmacen');
@@ -294,7 +352,7 @@
         async function renderAll() {
             await cargarKpis();
             await chartTrend();
-            await chartMetodos();
+            await chartMetodos();       // donut ya con etiquetas y sin Highcharts.escape
             await chartTopAlmacen();
         }
 
@@ -339,7 +397,7 @@
         // ---- init ----
         (async () => {
             await cargarAlmacenes();
-            await cargarMetodosPago();
+            await cargarMetodosPago();  // combo con etiquetas
             await renderAll();
         })();
     }

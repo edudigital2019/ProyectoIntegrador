@@ -83,6 +83,13 @@
     </div>
 </div>
 
+<style>
+    /* Asegura altura visible para Highcharts */
+    #chartCompare, #chartTrend, #chartDetalleAlmacen {
+        min-height: 360px;
+    }
+</style>
+
 <div class="row g-3">
     <div class="col-12">
         <div id="chartCompare" class="mb-4"></div>
@@ -115,7 +122,6 @@
     </div>
 </div>
 
-<!-- Modal detalle por almacén -->
 <div class="modal fade" id="mdlDetalle" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -131,5 +137,9 @@
 </div>
 
 @section Scripts {
+    <!-- Si NO cargas Highcharts globalmente, descomenta estas dos líneas:
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    -->
     <script src="~/js/sales-sellers-compare.js"></script>
 }

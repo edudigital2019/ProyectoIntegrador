@@ -59,6 +59,21 @@
             $almSummary.textContent = txt;
         }
 
+        // Etiquetador local de método de pago (usa lo expuesto por la vista si existe)
+        function labelMetodoLocal(code) {
+            const k = (code == null) ? '' : String(code).trim();
+            try {
+                if (typeof window !== 'undefined' && typeof window.labelMetodo === 'function') {
+                    return window.labelMetodo(k);
+                }
+                const map = (typeof window !== 'undefined' && window.METODO_MAP) ? window.METODO_MAP : {};
+                if (map && k && map[k]) return map[k];
+                return k || 'DESCONOCIDO';
+            } catch {
+                return k || 'DESCONOCIDO';
+            }
+        }
+
         // ---------- carga de listas ----------
         async function cargarAlmacenes({ preserve = true } = {}) {
             const prev = preserve ? new Set(getSelectedAlmacenes()) : new Set();
@@ -123,11 +138,14 @@
             });
             const res = await fetch(url, { cache: 'no-store' });
             if (!res.ok) return;
-            const data = await res.json(); // ["Efectivo", ...]
+            const data = await res.json(); // lista de CÓDIGOS (strings)
             if (!$mp) return;
+
+            // 👇 Mostrar etiqueta bonita; mantener el código como value
             $mp.innerHTML = `<option value="">(todos)</option>` +
-                data.map(x => `<option value="${x}">${x}</option>`).join('');
-            if (preserve && data.some(x => String(x) === prev)) $mp.value = prev;
+                (data || []).map(code => `<option value="${code}">${labelMetodoLocal(code)}</option>`).join('');
+
+            if (preserve && (data || []).some(x => String(x) === prev)) $mp.value = prev;
         }
 
         // buscar en el dropdown

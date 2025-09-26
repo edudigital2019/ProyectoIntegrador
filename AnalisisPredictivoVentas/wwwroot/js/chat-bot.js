@@ -91,7 +91,7 @@
       <div class="chat-container">
         <div class="flex-box no-wrap j-c-center a-i-center">
           <div>
-            <h2 class="chat-title">Chat Bot Grupo 9</h2>
+            <h2 class="chat-title">Asistente KPI Ventas</h2>
             <p class="chat-meta">Consulta: Top productos</p>
           </div>
           <img class="logo" alt="chat bot" src="data:image/png;base64,CODIGOLOGO NO TOMAR EN CUENTA" width="64" height="64"/>

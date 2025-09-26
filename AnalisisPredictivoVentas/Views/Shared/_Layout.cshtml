@@ -177,12 +177,7 @@
 
                 @if (canDash)
                 {
-                    <a class="nav-link @(ctrl == "Sales" && act == "Pagos" ? "active" : "")"
-                       asp-controller="Sales" asp-action="Pagos">
-                        <i class="bi bi-credit-card-2-front"></i><span>Métodos de pago</span>
-                    </a>
-
-                    <a class="nav-link @(ctrl == "Sales" && act == "Genero" ? "active" : "")"
+                     <a class="nav-link @(ctrl == "Sales" && act == "Genero" ? "active" : "")"
                        asp-controller="Sales" asp-action="Genero">
                         <i class="bi bi-people"></i><span>Ventas por género</span>
                     </a>
